@@ -6,6 +6,17 @@ config/name="Auramax 67"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
+[audio]
+
+buses/default_bus_layout="res://default_bus_layout.tres"
+
+[autoload]
+
+SettingsManager="*res://scripts/settings_manager.gd"
+GameState="*res://scripts/game_state.gd"
+MusicManager="*res://scripts/music_manager.gd"
+LocaleManager="*res://scripts/locale_manager.gd"
+
 [display]
 
 window/size/viewport_width=720
@@ -13,6 +24,10 @@ window/size/viewport_height=1280
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://assets/i18n/announcer_lines.en.translation", "res://assets/i18n/announcer_lines.pt.translation", "res://assets/i18n/announcer_lines.es.translation", "res://assets/i18n/announcer_lines.fr.translation", "res://assets/i18n/announcer_lines.de.translation", "res://assets/i18n/announcer_lines.it.translation")
 
 [physics]
 

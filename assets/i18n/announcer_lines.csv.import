@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bolhs3la7rr7f"
+
+[deps]
+
+files=["res://assets/i18n/announcer_lines.en.translation", "res://assets/i18n/announcer_lines.pt.translation", "res://assets/i18n/announcer_lines.es.translation", "res://assets/i18n/announcer_lines.fr.translation", "res://assets/i18n/announcer_lines.de.translation", "res://assets/i18n/announcer_lines.it.translation"]
+
+source_file="res://assets/i18n/announcer_lines.csv"
+dest_files=["res://assets/i18n/announcer_lines.en.translation", "res://assets/i18n/announcer_lines.pt.translation", "res://assets/i18n/announcer_lines.es.translation", "res://assets/i18n/announcer_lines.fr.translation", "res://assets/i18n/announcer_lines.de.translation", "res://assets/i18n/announcer_lines.it.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
