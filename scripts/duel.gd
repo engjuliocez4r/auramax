@@ -10,7 +10,10 @@ extends Control
 ## flows into the orbs (AuraCore) and the aura bar glow instead. Orbs drift
 ## in slowly from the screen edges like fireflies converging on AuraCore;
 ## intensity controls how many are on screen and how bright they are, never
-## their speed or agitation.
+## their speed or agitation. AuraCore also hosts PowerRing, a sequence of
+## thin contracting rings (never a solid disc) that reinforces the same
+## inward pull; intensity there only controls emission frequency and
+## opacity, capped at 3 rings on screen at once.
 
 signal valid_tap(side: String)
 signal invalid_tap(side: String)
@@ -41,10 +44,6 @@ signal burst_ready() # Declared now for the future burst/party effect; not imple
 @export var orb_drift_amplitude: float = 14.0 # px of gentle sideways sine wander (flat; not intensity-scaled).
 @export var orb_fade_in_time: float = 0.6 # Seconds to fade from invisible to full as an orb enters.
 @export var orb_max_spawn_rate: float = 4.0 # orbs/sec at full intensity.
-
-@export var ring_min_radius: float = 26.0
-@export var ring_max_radius: float = 100.0
-@export var ring_pulse_strength: float = 0.08
 
 @export var milestone_schedule: RhythmMilestones = preload("res://assets/data/rhythm_milestones.tres")
 
@@ -107,9 +106,6 @@ func _ready() -> void:
 	streak_changed.connect(_on_streak_changed)
 	aura_changed.connect(_on_aura_changed)
 	intensity_changed.connect(_on_intensity_changed)
-	_power_ring.ring_min_radius = ring_min_radius
-	_power_ring.ring_max_radius = ring_max_radius
-	_power_ring.ring_pulse_strength = ring_pulse_strength
 	_center_aura_core()
 	get_viewport().size_changed.connect(_center_aura_core)
 	_update_labels()
@@ -262,10 +258,6 @@ func _on_valid_tap(side: String) -> void:
 	else:
 		_right_zone_tween = tween
 
-	# The power ring breathes in time with the player's actual tap rhythm.
-	if _last_interval_ms > 0:
-		_power_ring.pulse_period = clampf(_last_interval_ms / 1000.0, 0.15, 3.0)
-
 	if SettingsManager.is_haptics_enabled():
 		Input.vibrate_handheld(HAPTIC_DURATION_MS)
 
@@ -292,9 +284,9 @@ func _on_intensity_changed(new_value: float) -> void:
 	_orb_brightness = new_value
 	_orb_current_speed = orb_travel_speed * lerpf(ORB_SPEED_MIN_INTENSITY_SCALE, ORB_SPEED_MAX_INTENSITY_SCALE, new_value)
 
-	# The power ring marking the convergence point grows and brightens too.
-	_power_ring.target_radius = lerpf(ring_min_radius, ring_max_radius, new_value)
-	_power_ring.target_alpha = new_value
+	# The power ring owns its own emission/contraction/drawing; intensity is
+	# the only thing the logic layer ever hands it.
+	_power_ring.set_intensity(new_value)
 
 
 func _update_labels() -> void:

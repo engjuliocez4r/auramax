@@ -1,53 +1,65 @@
 extends Node2D
 class_name PowerRing
-## Soft procedural glow marking where aura power converges at AuraCore.
+## Thin contracting rings marking where aura power converges at AuraCore.
 ##
-## Owns its own breathing animation. duel.gd (the logic layer) only pushes
-## target_radius/target_alpha/pulse_period into this node in reaction to its
-## signals — it never draws or animates directly, so this presentation can
-## be replaced independently of the gameplay math.
+## Owns its own emission timing, contraction, and drawing entirely.
+## duel.gd (the logic layer) only calls set_intensity() in reaction to its
+## own intensity_changed signal — it never spawns, times, or draws rings
+## itself, so this presentation can be replaced independently of the
+## gameplay math.
 
-@export var ring_min_radius: float = 26.0
-@export var ring_max_radius: float = 100.0
-@export var ring_pulse_strength: float = 0.08 # Fractional size/brightness wobble at the pulse peak.
+@export var ring_start_radius: float = 160.0 # Born large, well outside the character area.
+@export var ring_end_radius: float = 26.0 # Contracts toward this as it fades — never a collapsing dot.
+@export var ring_thickness: float = 3.0 # Stroke width only; never thickens with intensity.
+@export var ring_contract_duration: float = 2.2 # Seconds for one ring to contract and fade out.
+@export var ring_emit_interval_min: float = 0.6 # Seconds between rings at full intensity.
+@export var ring_emit_interval_max: float = 4.0 # Seconds between rings at low intensity.
+@export var ring_max_opacity: float = 0.5 # Peak alpha at full intensity; kept faint on purpose.
 
-# Set by duel.gd: how large/bright the ring should ease toward, and how many
-# seconds one breath takes — tied to the player's measured tap interval so
-# the ring breathes in time with their rhythm.
-var target_radius: float = 0.0
-var target_alpha: float = 0.0
-var pulse_period: float = 1.0
-
-const RING_LAYERS := 5
+const MAX_VISIBLE_RINGS := 3 # Hard cap, not a target.
 const RING_COLOR := Color(1.0, 0.85, 0.55)
-const RADIUS_SMOOTH_SPEED := 3.0
-const ALPHA_SMOOTH_SPEED := 3.0
-const INNER_LAYER_ALPHA_SCALE := 0.9
-const OUTER_LAYER_ALPHA_SCALE := 0.12
-const INNER_LAYER_RADIUS_SCALE := 0.32
+const MIN_OPACITY_FRACTION := 0.35 # Even a low-intensity ring stays slightly visible, not invisible.
+const ARC_POINT_COUNT := 48
 
-var _pulse_time: float = 0.0
-var _current_radius: float = 0.0
-var _current_alpha: float = 0.0
+var _intensity: float = 0.0
+var _ring_ages: Array[float] = []
+var _time_until_next_emit: float = 0.0
+
+
+## Called by duel.gd whenever intensity changes. Only lever for both
+## emission frequency and opacity — size, thickness and fill never move.
+func set_intensity(value: float) -> void:
+	_intensity = value
 
 
 func _process(delta: float) -> void:
-	_pulse_time += delta
-	var t := clampf(RADIUS_SMOOTH_SPEED * delta, 0.0, 1.0)
-	_current_radius = lerpf(_current_radius, target_radius, t)
-	_current_alpha = lerpf(_current_alpha, target_alpha, clampf(ALPHA_SMOOTH_SPEED * delta, 0.0, 1.0))
+	for i in range(_ring_ages.size() - 1, -1, -1):
+		_ring_ages[i] += delta
+		if _ring_ages[i] >= ring_contract_duration:
+			_ring_ages.remove_at(i)
+
+	if _intensity > 0.0 and _ring_ages.size() < MAX_VISIBLE_RINGS:
+		_time_until_next_emit -= delta
+		if _time_until_next_emit <= 0.0:
+			_ring_ages.append(0.0)
+			_schedule_next_emit()
+
 	queue_redraw()
 
 
+func _schedule_next_emit() -> void:
+	# Higher intensity -> shorter interval (more frequent), within the exported range.
+	_time_until_next_emit = lerpf(ring_emit_interval_max, ring_emit_interval_min, _intensity)
+
+
 func _draw() -> void:
-	if _current_alpha <= 0.001 or _current_radius <= 0.5:
+	if _ring_ages.is_empty():
 		return
-	var pulse := 1.0 + sin(_pulse_time * TAU / maxf(pulse_period, 0.05)) * ring_pulse_strength
-	var radius := _current_radius * pulse
-	var alpha := _current_alpha * pulse
-	# Outer-to-inner so the brighter core paints on top of the dim halo.
-	for i in range(RING_LAYERS):
-		var layer_t := float(i) / float(RING_LAYERS - 1)
-		var layer_radius := lerpf(radius, radius * INNER_LAYER_RADIUS_SCALE, layer_t)
-		var layer_alpha := lerpf(alpha * OUTER_LAYER_ALPHA_SCALE, alpha * INNER_LAYER_ALPHA_SCALE, layer_t)
-		draw_circle(Vector2.ZERO, layer_radius, Color(RING_COLOR.r, RING_COLOR.g, RING_COLOR.b, layer_alpha))
+	var target_opacity := ring_max_opacity * lerpf(MIN_OPACITY_FRACTION, 1.0, _intensity)
+	for age in _ring_ages:
+		var t := clampf(age / ring_contract_duration, 0.0, 1.0)
+		var radius := lerpf(ring_start_radius, ring_end_radius, t)
+		var alpha := lerpf(target_opacity, 0.0, t) # Dissolves before reaching the centre.
+		if alpha <= 0.001:
+			continue
+		draw_arc(Vector2.ZERO, radius, 0.0, TAU, ARC_POINT_COUNT, Color(RING_COLOR.r, RING_COLOR.g, RING_COLOR.b, alpha), ring_thickness, true)
