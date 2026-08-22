@@ -12,9 +12,10 @@ extends Control
 ## intensity controls how many are on screen and how bright they are, never
 ## their speed or agitation. AuraCore also hosts PowerRing, a sequence of
 ## thin, faint, slightly oval rings (never a solid disc) born off-screen and
-## pulled in noticeably faster than the orbs, for parallax depth; intensity
-## there only controls emission frequency and opacity, capped at 3 rings on
-## screen at once. Intensity itself rises slowly (tension) and falls fast
+## eased gently inward, only slightly faster than the orbs, for a subtle
+## parallax depth; intensity there only controls emission frequency and
+## opacity, capped at 3 rings on screen at once. Intensity itself rises
+## slowly (tension) and falls fast
 ## (cool-down) on purpose — see intensity_rise_speed/intensity_fall_speed.
 
 signal valid_tap(side: String)

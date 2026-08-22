@@ -11,16 +11,18 @@ class_name PowerRing
 ## Each ring is born fully off-screen and drifts in toward AuraCore first,
 ## THEN contracts and fades — two sequential phases, not both at once — so
 ## it reads as energy arriving from beyond the frame rather than an
-## on-the-spot pulse. Rings move noticeably faster than the particle orbs,
-## creating a parallax sense of depth between the two layers.
+## on-the-spot pulse. The contraction eases out (fast start, slow finish)
+## so it reads as a field gently tightening, never a projectile. Rings move
+## only slightly faster than the particle orbs — just enough for a subtle
+## parallax sense of depth, not a race.
 
 @export var ring_start_radius: float = 160.0 # Radius held during the drift-in phase.
 @export var ring_end_radius: float = 26.0 # Contracts toward this as it fades — never a collapsing dot.
 @export var ring_thickness: float = 3.0 # Stroke width only; never thickens with intensity.
 @export var ring_aspect_ratio: float = 1.15 # Horizontal stretch: modestly wider than tall.
-@export var ring_contract_duration: float = 1.1 # Total seconds (drift-in + contract): faster than the orbs.
-@export var ring_emit_interval_min: float = 0.6 # Seconds between rings at full intensity.
-@export var ring_emit_interval_max: float = 4.0 # Seconds between rings at low intensity.
+@export var ring_contract_duration: float = 2.8 # Total seconds (drift-in + contract): a slow, readable close.
+@export var ring_emit_interval_min: float = 2.2 # Seconds between rings at full intensity.
+@export var ring_emit_interval_max: float = 6.0 # Seconds between rings at low intensity.
 @export var ring_max_opacity: float = 0.15 # Peak alpha at full intensity: a faint suggestion, never a graphic.
 
 const MAX_VISIBLE_RINGS := 3 # Hard cap, not a target.
@@ -28,6 +30,7 @@ const RING_COLOR := Color(1.0, 0.85, 0.55)
 const MIN_OPACITY_FRACTION := 0.35 # Even a low-intensity ring stays slightly visible, not invisible.
 const ELLIPSE_POINT_COUNT := 48
 const DRIFT_PHASE_FRACTION := 0.35 # Share of the lifetime spent drifting in before contraction starts.
+const CONTRACT_EASE_OUT_POWER := 2.5 # Higher = more deceleration into the finish.
 
 var _intensity: float = 0.0
 var _rings: Array[Dictionary] = [] # Each: {"age": float, "offset": Vector2}
@@ -79,8 +82,11 @@ func _draw() -> void:
 		var t := clampf(age / ring_contract_duration, 0.0, 1.0)
 		var drift_t := clampf(t / DRIFT_PHASE_FRACTION, 0.0, 1.0)
 		var contract_t := clampf((t - DRIFT_PHASE_FRACTION) / (1.0 - DRIFT_PHASE_FRACTION), 0.0, 1.0)
+		# Ease-out: fast at the start of the close, decelerating into the
+		# finish — a field tightening, never a projectile snapping inward.
+		var eased_contract_t := 1.0 - pow(1.0 - contract_t, CONTRACT_EASE_OUT_POWER)
 		var center: Vector2 = (ring["offset"] as Vector2).lerp(Vector2.ZERO, drift_t)
-		var radius := lerpf(ring_start_radius, ring_end_radius, contract_t)
+		var radius := lerpf(ring_start_radius, ring_end_radius, eased_contract_t)
 		var alpha := lerpf(target_opacity, 0.0, t) # Dissolves before reaching the centre.
 		if alpha <= 0.001:
 			continue
