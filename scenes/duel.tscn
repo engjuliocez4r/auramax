@@ -12,14 +12,14 @@ script = ExtResource("1")
 anchor_right = 0.5
 anchor_bottom = 1.0
 mouse_filter = 0
-color = Color(0, 1, 0.4, 0.04)
+color = Color(0, 1, 0.4, 0.015)
 
 [node name="RightZone" type="ColorRect" parent="."]
 anchor_left = 0.5
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 0
-color = Color(0.615686, 0, 1, 0.04)
+color = Color(0.615686, 0, 1, 0.015)
 
 [node name="AuraBar" type="ProgressBar" parent="."]
 anchor_left = 0.1

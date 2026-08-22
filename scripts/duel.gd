@@ -25,8 +25,8 @@ signal burst_ready() # Declared now for the future burst/party effect; not imple
 @export var tap_highlight_duration: float = 0.25
 @export var intensity_rise_speed: float = 2.5
 @export var intensity_fall_speed: float = 1.2
-@export var zone_base_alpha: float = 0.04
-@export var zone_max_alpha: float = 0.18
+@export var zone_base_alpha: float = 0.015
+@export var zone_max_alpha: float = 0.08
 
 @export var milestone_schedule: RhythmMilestones = preload("res://assets/data/rhythm_milestones.tres")
 
