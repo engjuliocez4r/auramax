@@ -46,7 +46,7 @@ anchor_bottom = 0.2
 mouse_filter = 2
 horizontal_alignment = 1
 
-[node name="OrbSpawner" type="Node2D" parent="."]
-position = Vector2(360, 1120)
+[node name="AuraCore" type="Node2D" parent="."]
+position = Vector2(360, 704)
 
 [node name="Announcer" parent="." instance=ExtResource("2")]

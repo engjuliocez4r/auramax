@@ -60,6 +60,8 @@ O bónus de ritmo é o que dá valor ao clique (ver ponto 1).
 **9. CORTINA DE ESPETÁCULO**
 No início do duelo, as duas metades (verde à esquerda, roxo à direita) abrem-se como cortinas de teatro, mostrando as zonas de toque, e recolhem. Depois disso, cada toque acende brevemente a metade correspondente, de forma subtil. Nunca voltam a ser opacas. Ensina sem parecer tutorial.
 Modo fácil e opções permitem mantê-las visíveis.
+CLARIFICAÇÃO (2026-08-22): o tint das zonas NÃO escala com a intensidade. As zonas são feedback funcional — indicam onde tocar — e devem manter-se visualmente constantes. Só o breve destaque por toque as altera, voltando sempre à mesma opacidade base. Toda a escalada emocional (intensidade) flui exclusivamente para os orbs e para a barra de aura, nunca para as zonas.
+Razão: misturar feedback funcional com emocional fazia as zonas dominar o ecrã precisamente quando os efeitos de partículas deviam assumir o protagonismo, e escondia os orbs convergentes.
 
 **10. FEEDBACK DE TOQUE (sempre ativo)**
 Visual: a metade tocada acende por instantes.
