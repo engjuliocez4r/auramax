@@ -56,8 +56,9 @@ O cenário do quarto é personalizável e vendável (barato de produzir, boa mar
 **8. INPUT PRINCIPAL — CLIQUE ALTERNADO**
 Metade esquerda e metade direita do ecrã, alternadamente. Sem botões desenhados a ocupar espaço.
 O bónus de ritmo é o que dá valor ao clique (ver ponto 1).
-CLARIFICAÇÃO (2026-08-22): o streak de ritmo decai sozinho com a inatividade, em vez de congelar. Depois de um período de graça sem toques, o streak desce de forma constante ao longo do tempo até chegar a zero; a intensidade acompanha essa descida naturalmente, arrefecendo os orbs em vez de os cortar de repente. Retomar os toques durante a decadência continua a partir do streak já decaído, não do zero — parar custa progresso, mas não é um castigo abrupto.
-Razão: um streak que fica congelado até ao próximo toque parece um bug, não uma pausa. A decadência transmite a sensação de energia a esfriar, coerente com toda a escalada de intensidade construída à volta dela.
+CLARIFICAÇÃO (2026-08-22, revista): definição definitiva do streak, substituindo a decisão de decadência gradual registada aqui anteriormente — essa decisão estava errada e foi removida do código. Um ponto de streak é um PAR alternado completo (toque de um lado seguido do lado oposto), nunca um toque isolado. Um par só conta se o intervalo entre os seus dois toques, e o intervalo desde a conclusão do par anterior, ficarem abaixo de `streak_timeout` (1 segundo por defeito). Se esse limite for ultrapassado sem um toque válido, o streak volta a zero IMEDIATAMENTE — sem decadência gradual, sem período de graça. Quando o streak reinicia, a intensidade cai depressa, a emissão de partículas para e as que já estão em ecrã limpam-se rapidamente: o jogo só se move enquanto o jogador se move.
+Os marcos (milestones) acontecem a cada `milestone_size` pontos de streak (5 por defeito), de forma cumulativa e uniforme dentro de um streak ininterrupto (5, 10, 15, ...) — já não há um primeiro/segundo marco com espaçamentos diferentes. O locutor reage em cada marco, e o nível do marco reinicia sempre que o streak reinicia.
+Razão: decair gradualmente fazia o streak parecer um bug em pausa, não uma consequência de parar de jogar. Um reset imediato e total é mais legível e reforça a mecânica central (ponto 1): só a habilidade sustentada no momento conta.
 
 **9. CORTINA DE ESPETÁCULO**
 No início do duelo, as duas metades (verde à esquerda, roxo à direita) abrem-se como cortinas de teatro, mostrando as zonas de toque, e recolhem. Depois disso, cada toque acende brevemente a metade correspondente, de forma subtil. Nunca voltam a ser opacas. Ensina sem parecer tutorial.
@@ -86,6 +87,8 @@ A jogada ótima é fazer os dois em simultâneo, que é exatamente o gesto do me
 **13. BURST — RECURSO, NÃO MULTIPLICADOR CONTÍNUO**
 A barra só sobe, nunca arrefece. Enche devagar. Ao encher, dispara automaticamente.
 Visualmente é um núcleo circular de energia a carregar, com três entalhes correspondentes às três repetições do gesto. Não é uma barra genérica.
+CLARIFICAÇÃO (2026-08-22): a acumulação do burst é INDEPENDENTE dos resets do streak (ver ponto 8). Cada marco de streak completo (a cada `milestone_size` pontos) soma uma fatia fixa (`burst_per_milestone`) ao medidor de burst. Esse medidor nunca desce — se o streak reiniciar, o burst mantém tudo o que já ganhou e limita-se a parar de encher até o jogador construir outro marco completo, altura em que continua exatamente de onde tinha ficado. Burst é poupança; streak é o momento presente. Nunca partilham a mesma lógica de reset ou decadência.
+Razão: se o burst esvaziasse junto com o streak, um único erro apagaria minutos de progresso acumulado — puniria a longo prazo por um lapso de curto prazo. Separar as duas lógicas deixa o streak tenso e imediato, e o burst como recompensa de esforço sustentado ao longo de toda a sessão.
 
 **14. BURST — MOMENTO DE FESTA**
 Ecrã inteiro a piscar, chuva de papel picado dourado, grito da multidão, locutor a anunciar. Cliques multiplicados.

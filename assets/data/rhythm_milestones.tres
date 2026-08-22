@@ -4,6 +4,4 @@
 
 [resource]
 script = ExtResource("1")
-first_milestone = 5
-second_milestone = 10
-milestone_step = 3
+milestone_size = 5

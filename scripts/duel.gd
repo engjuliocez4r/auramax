@@ -1,6 +1,13 @@
 extends Control
-## Rhythm-driven duel core: alternating left/right taps build a streak, and a
-## single smoothed "intensity" value derived from that streak drives every
+## Rhythm-driven duel core. A streak point is one COMPLETE alternating pair
+## (tap one side, then the other) landed within streak_timeout of both the
+## pair's own first tap and the previous pair's completion — not one tap.
+## Missing that window resets the streak to zero immediately; there is no
+## gradual decay. Every milestone_size streak points is a milestone: the
+## announcer reacts and a fixed slice is banked into burst_meter, which only
+## ever grows — a streak reset never takes burst progress away, it only
+## stops burst_meter from growing until the next milestone. A single
+## smoothed "intensity" value derived from the streak drives every
 ## emotional-escalation visual. This script owns gameplay math only;
 ## presentation (labels, bar glow, zone flash, firefly orbs, power ring)
 ## lives in the signal handlers below so it can be replaced without touching
@@ -28,13 +35,12 @@ signal milestone_reached(milestone_index: int)
 signal burst_ready() # Declared now for the future burst/party effect; not implemented yet.
 
 @export var base_aura: float = 1.0
-@export var rhythm_window: float = 0.35
 @export var streak_bonus_step: float = 0.1
 @export var max_bonus: float = 2.0
 @export var aura_target: float = 100.0 # Max value shown on AuraBar.
 
-@export var streak_decay_grace: float = 1.0 # Seconds of inactivity before the streak starts dropping.
-@export var streak_decay_rate: float = 3.0 # Streak points lost per second once decaying.
+@export var streak_timeout: float = 1.0 # Max seconds allowed between any two consecutive valid taps.
+@export var burst_per_milestone: float = 0.2 # Fixed slice added to burst_meter (0..1) per milestone.
 
 @export var orb_streak_threshold: int = 5
 @export var tap_highlight_alpha: float = 0.12 # Also the zone flash's peak alpha (base is 0.0).
@@ -82,15 +88,15 @@ const AURA_CORE_VERTICAL_FRACTION := 0.55 # Where the avatar will stand later.
 @onready var _power_ring: PowerRing = $AuraCore/PowerRing
 
 var intensity: float = 0.0
+var burst_meter: float = 0.0 # Savings, not the current moment: only ever grows, independent of streak resets.
 
 var _last_side: String = ""
-var _last_tap_time_ms: int = -1
-var _last_interval_ms: int = -1
+var _last_valid_tap_time_ms: int = -1 # Timestamp of the most recent valid (alternating) tap, of either kind.
+var _pair_pending: bool = false # True once the first tap of a pair has landed, waiting for its second.
 var _streak: int = 0
 var _current_aura: float = 0.0
 var _intensity_target: float = 0.0
 var _next_milestone_index: int = 0
-var _streak_decay_accumulator: float = 0.0
 var _left_zone_tween: Tween
 var _right_zone_tween: Tween
 
@@ -117,7 +123,6 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_update_streak_decay(delta)
 	_update_intensity(delta)
 	_update_orb_spawning(delta)
 
@@ -156,84 +161,68 @@ func _is_tap_press(event: InputEvent) -> bool:
 
 func _handle_tap(side: String) -> void:
 	var now_ms := Time.get_ticks_msec()
+
 	if _last_side != "" and side == _last_side:
-		# Repeating a side breaks the rhythm chain entirely: the next valid
-		# tap can't be judged against an interval that involved this repeat.
-		_last_interval_ms = -1
-		_set_streak(0)
+		# Repeating a side is always invalid, regardless of timing: no aura,
+		# hard reset. Deliberately doesn't touch _last_side/_last_valid_tap_time_ms,
+		# so the very next alternating tap is still judged against the side/time
+		# that was actually last valid.
 		invalid_tap.emit(side)
+		_reset_streak()
 		return
-	_evaluate_rhythm(now_ms)
+
+	# One uniform timeout covers both gaps the spec calls out: the gap
+	# between a pair's two taps (mid-pair), and the gap from the previous
+	# pair's completion to this pair's start (between pairs) — both are just
+	# "the gap since the last valid tap."
+	if _last_valid_tap_time_ms != -1 and now_ms - _last_valid_tap_time_ms >= streak_timeout * 1000.0:
+		_reset_streak()
+
 	_last_side = side
-	_last_tap_time_ms = now_ms
+	_last_valid_tap_time_ms = now_ms
 	valid_tap.emit(side)
 	_grant_aura()
 
-
-func _evaluate_rhythm(now_ms: int) -> void:
-	if _last_tap_time_ms == -1:
-		# First tap of the session: nothing to measure against, it always counts.
-		_set_streak(1)
-		return
-	var interval := now_ms - _last_tap_time_ms
-	if _last_interval_ms != -1:
-		var lower := _last_interval_ms * (1.0 - rhythm_window)
-		var upper := _last_interval_ms * (1.0 + rhythm_window)
-		if interval >= lower and interval <= upper:
-			_set_streak(_streak + 1)
-		else:
-			_set_streak(0)
+	if _pair_pending:
+		_pair_pending = false
+		_complete_pair()
 	else:
-		# Second tap ever (or first after a rhythm-chain/decay reset): accept
-		# it and start timing from here since there is no prior interval to
-		# compare against.
-		_set_streak(_streak + 1)
-	_last_interval_ms = interval
+		# First tap of a new pair: doesn't build the streak on its own.
+		_pair_pending = true
 
 
-func _set_streak(value: int) -> void:
-	if value == _streak:
-		return
-	_streak = value
-	_intensity_target = clampf(float(_streak) / float(maxi(milestone_schedule.second_milestone, 1)), 0.0, 1.0)
-	if _streak == 0:
-		_next_milestone_index = 0
-		_streak_decay_accumulator = 0.0
+func _complete_pair() -> void:
+	_streak += 1
+	_intensity_target = clampf(float(_streak) / float(milestone_schedule.milestone_size * 2), 0.0, 1.0)
 	streak_changed.emit(_streak)
-	if _streak > 0:
-		_check_milestones()
+	_check_milestones()
+
+
+func _reset_streak() -> void:
+	_pair_pending = false
+	if _streak == 0:
+		return
+	_streak = 0
+	_next_milestone_index = 0
+	_intensity_target = 0.0
+	streak_changed.emit(_streak)
 
 
 func _check_milestones() -> void:
 	var threshold := milestone_schedule.threshold_for_index(_next_milestone_index)
 	if _streak >= threshold:
 		milestone_reached.emit(_next_milestone_index)
+		# Burst is savings, not the current moment: it only ever grows, and a
+		# later streak reset can never take this back — see _reset_streak().
+		burst_meter = minf(burst_meter + burst_per_milestone, 1.0)
 		_next_milestone_index += 1
-		_check_milestones() # Defensive: covers a tiny milestone_step skipping a tier in one tap.
+		_check_milestones() # Defensive: covers a tiny milestone_size skipping a tier in one pair.
 
 
 func _grant_aura() -> void:
 	var bonus := minf(_streak * streak_bonus_step, max_bonus)
 	_current_aura += base_aura * (1.0 + bonus)
 	aura_changed.emit(_current_aura)
-
-
-func _update_streak_decay(delta: float) -> void:
-	if _streak <= 0 or _last_tap_time_ms == -1:
-		_streak_decay_accumulator = 0.0
-		return
-	var idle_seconds := (Time.get_ticks_msec() - _last_tap_time_ms) / 1000.0
-	if idle_seconds < streak_decay_grace:
-		_streak_decay_accumulator = 0.0
-		return
-	_streak_decay_accumulator += delta * streak_decay_rate
-	while _streak_decay_accumulator >= 1.0 and _streak > 0:
-		_streak_decay_accumulator -= 1.0
-		# A tap right after decay shouldn't be judged against a stale,
-		# pre-pause interval — treat it like the start of a fresh chain so
-		# resuming isn't punished on top of the decay itself.
-		_last_interval_ms = -1
-		_set_streak(_streak - 1)
 
 
 func _update_intensity(delta: float) -> void:
