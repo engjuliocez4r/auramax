@@ -11,9 +11,11 @@ extends Control
 ## in slowly from the screen edges like fireflies converging on AuraCore;
 ## intensity controls how many are on screen and how bright they are, never
 ## their speed or agitation. AuraCore also hosts PowerRing, a sequence of
-## thin contracting rings (never a solid disc) that reinforces the same
-## inward pull; intensity there only controls emission frequency and
-## opacity, capped at 3 rings on screen at once.
+## thin, faint, slightly oval rings (never a solid disc) born off-screen and
+## pulled in noticeably faster than the orbs, for parallax depth; intensity
+## there only controls emission frequency and opacity, capped at 3 rings on
+## screen at once. Intensity itself rises slowly (tension) and falls fast
+## (cool-down) on purpose — see intensity_rise_speed/intensity_fall_speed.
 
 signal valid_tap(side: String)
 signal invalid_tap(side: String)
@@ -35,8 +37,8 @@ signal burst_ready() # Declared now for the future burst/party effect; not imple
 @export var orb_streak_threshold: int = 5
 @export var tap_highlight_alpha: float = 0.12 # Also the zone flash's peak alpha (base is 0.0).
 @export var tap_highlight_duration: float = 0.25
-@export var intensity_rise_speed: float = 2.5
-@export var intensity_fall_speed: float = 1.2
+@export var intensity_rise_speed: float = 2.5 # Slow on purpose: building tension takes time.
+@export var intensity_fall_speed: float = 5.0 # Deliberately faster than rise: lingering on the way down just drags.
 @export var zone_base_alpha: float = 0.0 # Fully transparent at rest; only the tap flash ever raises it.
 
 @export var orb_travel_speed: float = 90.0 # px/sec inward; crossing the screen takes several seconds.
@@ -44,6 +46,7 @@ signal burst_ready() # Declared now for the future burst/party effect; not imple
 @export var orb_drift_amplitude: float = 14.0 # px of gentle sideways sine wander (flat; not intensity-scaled).
 @export var orb_fade_in_time: float = 0.6 # Seconds to fade from invisible to full as an orb enters.
 @export var orb_max_spawn_rate: float = 4.0 # orbs/sec at full intensity.
+@export var orb_lifetime: float = 3.0 # Hard cap on a single orb's time on screen, so cool-down clears fast.
 
 @export var milestone_schedule: RhythmMilestones = preload("res://assets/data/rhythm_milestones.tres")
 
@@ -349,7 +352,10 @@ func _spawn_power_orb() -> void:
 	_active_orb_count += 1
 
 	var per_orb_speed := maxf(_orb_current_speed * (1.0 + randf_range(-orb_speed_variance, orb_speed_variance)), 5.0)
-	var duration := spawn_pos.length() / per_orb_speed
+	# Capped by orb_lifetime so once emission slows, orbs already in flight
+	# still clear the screen promptly instead of dragging out their full
+	# natural travel time from a far corner.
+	var duration := minf(spawn_pos.length() / per_orb_speed, orb_lifetime)
 
 	# Per-orb wander axis/phase so orbs spawned together don't drift in lockstep.
 	var drift_axis := Vector2.RIGHT.rotated(randf() * TAU)

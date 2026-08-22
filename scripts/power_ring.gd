@@ -2,46 +2,54 @@ extends Node2D
 class_name PowerRing
 ## Thin contracting rings marking where aura power converges at AuraCore.
 ##
-## Owns its own emission timing, contraction, and drawing entirely.
-## duel.gd (the logic layer) only calls set_intensity() in reaction to its
-## own intensity_changed signal — it never spawns, times, or draws rings
+## Owns its own emission timing, motion, and drawing entirely. duel.gd (the
+## logic layer) only calls set_intensity() in reaction to its own
+## intensity_changed signal — it never spawns, times, or draws rings
 ## itself, so this presentation can be replaced independently of the
 ## gameplay math.
+##
+## Each ring is born fully off-screen and drifts in toward AuraCore first,
+## THEN contracts and fades — two sequential phases, not both at once — so
+## it reads as energy arriving from beyond the frame rather than an
+## on-the-spot pulse. Rings move noticeably faster than the particle orbs,
+## creating a parallax sense of depth between the two layers.
 
-@export var ring_start_radius: float = 160.0 # Born large, well outside the character area.
+@export var ring_start_radius: float = 160.0 # Radius held during the drift-in phase.
 @export var ring_end_radius: float = 26.0 # Contracts toward this as it fades — never a collapsing dot.
 @export var ring_thickness: float = 3.0 # Stroke width only; never thickens with intensity.
-@export var ring_contract_duration: float = 2.2 # Seconds for one ring to contract and fade out.
+@export var ring_aspect_ratio: float = 1.15 # Horizontal stretch: modestly wider than tall.
+@export var ring_contract_duration: float = 1.1 # Total seconds (drift-in + contract): faster than the orbs.
 @export var ring_emit_interval_min: float = 0.6 # Seconds between rings at full intensity.
 @export var ring_emit_interval_max: float = 4.0 # Seconds between rings at low intensity.
-@export var ring_max_opacity: float = 0.5 # Peak alpha at full intensity; kept faint on purpose.
+@export var ring_max_opacity: float = 0.15 # Peak alpha at full intensity: a faint suggestion, never a graphic.
 
 const MAX_VISIBLE_RINGS := 3 # Hard cap, not a target.
 const RING_COLOR := Color(1.0, 0.85, 0.55)
 const MIN_OPACITY_FRACTION := 0.35 # Even a low-intensity ring stays slightly visible, not invisible.
-const ARC_POINT_COUNT := 48
+const ELLIPSE_POINT_COUNT := 48
+const DRIFT_PHASE_FRACTION := 0.35 # Share of the lifetime spent drifting in before contraction starts.
 
 var _intensity: float = 0.0
-var _ring_ages: Array[float] = []
+var _rings: Array[Dictionary] = [] # Each: {"age": float, "offset": Vector2}
 var _time_until_next_emit: float = 0.0
 
 
 ## Called by duel.gd whenever intensity changes. Only lever for both
-## emission frequency and opacity — size, thickness and fill never move.
+## emission frequency and opacity — size, thickness, fill and aspect never move.
 func set_intensity(value: float) -> void:
 	_intensity = value
 
 
 func _process(delta: float) -> void:
-	for i in range(_ring_ages.size() - 1, -1, -1):
-		_ring_ages[i] += delta
-		if _ring_ages[i] >= ring_contract_duration:
-			_ring_ages.remove_at(i)
+	for i in range(_rings.size() - 1, -1, -1):
+		_rings[i]["age"] += delta
+		if _rings[i]["age"] >= ring_contract_duration:
+			_rings.remove_at(i)
 
-	if _intensity > 0.0 and _ring_ages.size() < MAX_VISIBLE_RINGS:
+	if _intensity > 0.0 and _rings.size() < MAX_VISIBLE_RINGS:
 		_time_until_next_emit -= delta
 		if _time_until_next_emit <= 0.0:
-			_ring_ages.append(0.0)
+			_spawn_ring()
 			_schedule_next_emit()
 
 	queue_redraw()
@@ -52,14 +60,37 @@ func _schedule_next_emit() -> void:
 	_time_until_next_emit = lerpf(ring_emit_interval_max, ring_emit_interval_min, _intensity)
 
 
+func _spawn_ring() -> void:
+	# Placed far enough away, in a random direction, that the ring starts
+	# fully outside the visible viewport regardless of AuraCore's position.
+	var viewport_size := get_viewport().get_visible_rect().size
+	var offset_distance := viewport_size.length() * 0.5 + ring_start_radius
+	var angle := randf() * TAU
+	var offset := Vector2(cos(angle), sin(angle)) * offset_distance
+	_rings.append({"age": 0.0, "offset": offset})
+
+
 func _draw() -> void:
-	if _ring_ages.is_empty():
+	if _rings.is_empty():
 		return
 	var target_opacity := ring_max_opacity * lerpf(MIN_OPACITY_FRACTION, 1.0, _intensity)
-	for age in _ring_ages:
+	for ring in _rings:
+		var age: float = ring["age"]
 		var t := clampf(age / ring_contract_duration, 0.0, 1.0)
-		var radius := lerpf(ring_start_radius, ring_end_radius, t)
+		var drift_t := clampf(t / DRIFT_PHASE_FRACTION, 0.0, 1.0)
+		var contract_t := clampf((t - DRIFT_PHASE_FRACTION) / (1.0 - DRIFT_PHASE_FRACTION), 0.0, 1.0)
+		var center: Vector2 = (ring["offset"] as Vector2).lerp(Vector2.ZERO, drift_t)
+		var radius := lerpf(ring_start_radius, ring_end_radius, contract_t)
 		var alpha := lerpf(target_opacity, 0.0, t) # Dissolves before reaching the centre.
 		if alpha <= 0.001:
 			continue
-		draw_arc(Vector2.ZERO, radius, 0.0, TAU, ARC_POINT_COUNT, Color(RING_COLOR.r, RING_COLOR.g, RING_COLOR.b, alpha), ring_thickness, true)
+		var color := Color(RING_COLOR.r, RING_COLOR.g, RING_COLOR.b, alpha)
+		draw_polyline(_build_ellipse_points(radius * ring_aspect_ratio, radius, center), color, ring_thickness, true)
+
+
+func _build_ellipse_points(radius_x: float, radius_y: float, center: Vector2) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i in range(ELLIPSE_POINT_COUNT + 1): # +1 closes the loop back to the start point.
+		var angle := TAU * i / ELLIPSE_POINT_COUNT
+		points.append(center + Vector2(cos(angle) * radius_x, sin(angle) * radius_y))
+	return points
