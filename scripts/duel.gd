@@ -28,9 +28,7 @@ signal burst_ready() # Declared now for the future burst/party effect; not imple
 @export var zone_base_alpha: float = 0.04
 @export var zone_max_alpha: float = 0.18
 
-@export var first_milestone: int = 5
-@export var second_milestone: int = 10
-@export var milestone_step: int = 3
+@export var milestone_schedule: RhythmMilestones = preload("res://assets/data/rhythm_milestones.tres")
 
 const HAPTIC_DURATION_MS := 20
 
@@ -142,7 +140,7 @@ func _set_streak(value: int) -> void:
 	if value == _streak:
 		return
 	_streak = value
-	_intensity_target = clampf(float(_streak) / float(maxi(second_milestone, 1)), 0.0, 1.0)
+	_intensity_target = clampf(float(_streak) / float(maxi(milestone_schedule.second_milestone, 1)), 0.0, 1.0)
 	if _streak == 0:
 		_next_milestone_index = 0
 	streak_changed.emit(_streak)
@@ -151,19 +149,11 @@ func _set_streak(value: int) -> void:
 
 
 func _check_milestones() -> void:
-	var threshold := _milestone_threshold(_next_milestone_index)
+	var threshold := milestone_schedule.threshold_for_index(_next_milestone_index)
 	if _streak >= threshold:
 		milestone_reached.emit(_next_milestone_index)
 		_next_milestone_index += 1
 		_check_milestones() # Defensive: covers a tiny milestone_step skipping a tier in one tap.
-
-
-func _milestone_threshold(index: int) -> int:
-	if index == 0:
-		return first_milestone
-	if index == 1:
-		return second_milestone
-	return second_milestone + milestone_step * (index - 1)
 
 
 func _grant_aura() -> void:

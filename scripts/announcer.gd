@@ -3,13 +3,13 @@ extends Control
 ##
 ## It is never told a phrase by its host: it listens to whichever of the
 ## host's signals it recognizes by name (currently "streak_changed") and
-## decides for itself what to say, using its own milestone schedule below.
-## That keeps every screen free of announcer-specific code — a screen only
-## needs to expose a plain streak_changed(int) signal to get commentary.
+## decides for itself what to say, using the shared RhythmMilestones
+## resource below. That keeps every screen free of announcer-specific code
+## — a screen only needs to expose a plain streak_changed(int) signal to
+## get commentary, and stays in sync with gameplay since both reference the
+## same schedule resource.
 
-@export var first_milestone: int = 5
-@export var second_milestone: int = 10
-@export var milestone_step: int = 3
+@export var milestone_schedule: RhythmMilestones = preload("res://assets/data/rhythm_milestones.tres")
 
 @export var enter_duration: float = 0.15
 @export var hold_duration: float = 1.1
@@ -65,19 +65,11 @@ func _on_host_streak_changed(new_streak: int) -> void:
 	if new_streak == 0:
 		_next_milestone_index = 0
 		return
-	var threshold := _milestone_threshold(_next_milestone_index)
+	var threshold := milestone_schedule.threshold_for_index(_next_milestone_index)
 	if new_streak >= threshold:
 		var tier := _pick_energy_tier(_next_milestone_index)
 		announce("milestone_tier_%d" % tier)
 		_next_milestone_index += 1
-
-
-func _milestone_threshold(index: int) -> int:
-	if index == 0:
-		return first_milestone
-	if index == 1:
-		return second_milestone
-	return second_milestone + milestone_step * (index - 1)
 
 
 func _pick_energy_tier(milestone_index: int) -> int:
