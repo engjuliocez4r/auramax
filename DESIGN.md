@@ -56,11 +56,13 @@ O cenário do quarto é personalizável e vendável (barato de produzir, boa mar
 **8. INPUT PRINCIPAL — CLIQUE ALTERNADO**
 Metade esquerda e metade direita do ecrã, alternadamente. Sem botões desenhados a ocupar espaço.
 O bónus de ritmo é o que dá valor ao clique (ver ponto 1).
+CLARIFICAÇÃO (2026-08-22): o streak de ritmo decai sozinho com a inatividade, em vez de congelar. Depois de um período de graça sem toques, o streak desce de forma constante ao longo do tempo até chegar a zero; a intensidade acompanha essa descida naturalmente, arrefecendo os orbs em vez de os cortar de repente. Retomar os toques durante a decadência continua a partir do streak já decaído, não do zero — parar custa progresso, mas não é um castigo abrupto.
+Razão: um streak que fica congelado até ao próximo toque parece um bug, não uma pausa. A decadência transmite a sensação de energia a esfriar, coerente com toda a escalada de intensidade construída à volta dela.
 
 **9. CORTINA DE ESPETÁCULO**
 No início do duelo, as duas metades (verde à esquerda, roxo à direita) abrem-se como cortinas de teatro, mostrando as zonas de toque, e recolhem. Depois disso, cada toque acende brevemente a metade correspondente, de forma subtil. Nunca voltam a ser opacas. Ensina sem parecer tutorial.
 Modo fácil e opções permitem mantê-las visíveis.
-CLARIFICAÇÃO (2026-08-22): o tint das zonas NÃO escala com a intensidade. As zonas são feedback funcional — indicam onde tocar — e devem manter-se visualmente constantes. Só o breve destaque por toque as altera, voltando sempre à mesma opacidade base. Toda a escalada emocional (intensidade) flui exclusivamente para os orbs e para a barra de aura, nunca para as zonas.
+CLARIFICAÇÃO (2026-08-22): as zonas são totalmente transparentes em repouso — sem nenhum split visível no ecrã — e só existem como um breve flash por toque, que sobe e volta a desaparecer por completo. Não escalam com a intensidade nem com mais nada. São feedback funcional — indicam onde tocar — nunca feedback emocional. Toda a escalada emocional (intensidade) flui exclusivamente para os orbs e para a barra de aura, nunca para as zonas.
 Razão: misturar feedback funcional com emocional fazia as zonas dominar o ecrã precisamente quando os efeitos de partículas deviam assumir o protagonismo, e escondia os orbs convergentes.
 
 **10. FEEDBACK DE TOQUE (sempre ativo)**
