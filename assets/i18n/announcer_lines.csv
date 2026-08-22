@@ -7,3 +7,13 @@ ui_haptics,Haptic Feedback,Vibração,Retroalimentación Háptica,Retour Haptiqu
 ui_language,Language,Idioma,Idioma,Langue,Sprache,Lingua
 ui_player_name,Player Name,Nome do Jogador,Nombre del Jugador,Nom du Joueur,Spielername,Nome Giocatore
 announcer_welcome,Welcome to Auramax 67!,Bem-vindo ao Auramax 67!,¡Bienvenido a Auramax 67!,Bienvenue dans Auramax 67 !,Willkommen bei Auramax 67!,Benvenuto in Auramax 67!
+duel_aura_label,Aura: %d,Aura: %d,Aura: %d,Aura : %d,Aura: %d,Aura: %d
+duel_streak_label,Streak: %d,Sequência: %d,Racha: %d,Série : %d,Serie: %d,Serie: %d
+announcer_milestone_tier0_a,Nice rhythm!,Ótimo ritmo!,¡Buen ritmo!,Beau rythme !,Guter Rhythmus!,Ottimo ritmo!
+announcer_milestone_tier0_b,You're finding the groove!,Você está pegando o ritmo!,¡Estás encontrando el ritmo!,Tu trouves le rythme !,Du findest den Rhythmus!,Stai trovando il ritmo!
+announcer_milestone_tier1_a,You're on fire!,Você está pegando fogo!,¡Estás que ardes!,Tu es en feu !,Du bist in Flammen!,Sei in fiamme!
+announcer_milestone_tier1_b,Incredible combo!,Combo incrível!,¡Combo increíble!,Combo incroyable !,Unglaubliche Combo!,Combo incredibile!
+announcer_milestone_tier2_a,UNSTOPPABLE!,IMPARÁVEL!,¡IMPARABLE!,IMPARABLE !,UNAUFHALTSAM!,INARRESTABILE!
+announcer_milestone_tier2_b,Pure aura mastery!,Domínio puro da aura!,¡Dominio puro del aura!,Maîtrise pure de l'aura !,Reine Aura-Meisterschaft!,Puro dominio dell'aura!
+announcer_milestone_tier3_a,LEGENDARY STREAK!!!,SEQUÊNCIA LENDÁRIA!!!,¡RACHA LEGENDARIA!!!,SÉRIE LÉGENDAIRE !!!,LEGENDÄRE SERIE!!!,SERIE LEGGENDARIA!!!
+announcer_milestone_tier3_b,THE CROWD IS ROARING!!!,A MULTIDÃO ESTÁ RUGINDO!!!,¡LA MULTITUD RUGE!!!,LA FOULE RUGIT !!!,DIE MENGE TOBT!!!,LA FOLLA RUGGISCE!!!

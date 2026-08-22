@@ -5,6 +5,7 @@ config_version=5
 config/name="Auramax 67"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
+run/main_scene="res://scenes/duel.tscn"
 
 [audio]
 
