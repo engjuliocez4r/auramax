@@ -123,8 +123,23 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_check_streak_timeout()
 	_update_intensity(delta)
 	_update_orb_spawning(delta)
+
+
+func _check_streak_timeout() -> void:
+	# Driven by the clock, not by the next tap: the streak must die the
+	# instant streak_timeout elapses, even if the player never taps again.
+	# _handle_tap() also checks this gap before processing a fresh tap, as a
+	# belt-and-suspenders guard against the one-frame race where a tap lands
+	# the same frame the timeout expires, before this check has run.
+	if _streak == 0 and not _pair_pending:
+		return
+	if _last_valid_tap_time_ms == -1:
+		return
+	if Time.get_ticks_msec() - _last_valid_tap_time_ms >= streak_timeout * 1000.0:
+		_reset_streak()
 
 
 func _center_aura_core() -> void:
