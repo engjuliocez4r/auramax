@@ -2,12 +2,15 @@ extends Control
 ## Rhythm-driven duel core: alternating left/right taps build a streak, and a
 ## single smoothed "intensity" value derived from that streak drives every
 ## emotional-escalation visual. This script owns gameplay math only;
-## presentation (labels, bar glow, zone flash, orbs) lives in the signal
-## handlers below so it can be replaced without touching tap/streak/aura
-## logic. The touch zones are functional feedback only (where to tap): they
-## stay fully transparent at rest and flash briefly on a valid tap, never
-## reacting to intensity. All intensity-driven escalation flows into the
-## orbs (AuraCore) and the aura bar glow instead.
+## presentation (labels, bar glow, zone flash, firefly orbs, power ring)
+## lives in the signal handlers below so it can be replaced without touching
+## tap/streak/aura logic. The touch zones are functional feedback only
+## (where to tap): they stay fully transparent at rest and flash briefly on
+## a valid tap, never reacting to intensity. All intensity-driven escalation
+## flows into the orbs (AuraCore) and the aura bar glow instead. Orbs drift
+## in slowly from the screen edges like fireflies converging on AuraCore;
+## intensity controls how many are on screen and how bright they are, never
+## their speed or agitation.
 
 signal valid_tap(side: String)
 signal invalid_tap(side: String)
@@ -33,11 +36,15 @@ signal burst_ready() # Declared now for the future burst/party effect; not imple
 @export var intensity_fall_speed: float = 1.2
 @export var zone_base_alpha: float = 0.0 # Fully transparent at rest; only the tap flash ever raises it.
 
-@export var orb_spawn_radius_min: float = 40.0
-@export var orb_spawn_radius_max: float = 140.0
-@export var orb_travel_speed: float = 220.0 # px/sec inward at full intensity; caps the tween below orb_lifetime.
-@export var orb_lifetime: float = 0.9
-@export var orb_max_spawn_rate: float = 10.0 # orbs/sec at full intensity.
+@export var orb_travel_speed: float = 90.0 # px/sec inward; crossing the screen takes several seconds.
+@export var orb_speed_variance: float = 0.3 # +/- fractional per-orb randomness, so the stream isn't uniform.
+@export var orb_drift_amplitude: float = 14.0 # px of gentle sideways sine wander (flat; not intensity-scaled).
+@export var orb_fade_in_time: float = 0.6 # Seconds to fade from invisible to full as an orb enters.
+@export var orb_max_spawn_rate: float = 4.0 # orbs/sec at full intensity.
+
+@export var ring_min_radius: float = 26.0
+@export var ring_max_radius: float = 100.0
+@export var ring_pulse_strength: float = 0.08
 
 @export var milestone_schedule: RhythmMilestones = preload("res://assets/data/rhythm_milestones.tres")
 
@@ -46,13 +53,18 @@ const HAPTIC_DURATION_MS := 20
 const ORB_CORE_RADIUS := 3.0
 const ORB_HALO_RADIUS := 9.0
 const ORB_HALO_ALPHA_SCALE := 0.35 # Halo alpha as a fraction of the core's, for a soft-glow read.
-const ORB_COLOR_DIM := Color(0.9, 0.55, 0.25, 0.55) # Low intensity: dim embers.
-const ORB_COLOR_BRIGHT := Color(1.0, 0.95, 0.7, 0.95) # Full intensity: hot white-gold.
-const ORB_MIN_SPAWN_RATE := 1.0 # orbs/sec floor once past orb_streak_threshold, at zero intensity.
-const ORB_MIN_TRAVEL_SPEED_SCALE := 0.3 # Fraction of orb_travel_speed used at zero intensity: slow drift.
-const ORB_MIN_SIZE_SCALE := 0.7 # Orb scale at zero intensity: small.
-const ORB_MAX_SIZE_SCALE := 1.7 # Orb scale at full intensity: large.
-const ORB_MAX_JITTER_STRENGTH := 16.0 # px of sideways wobble at full intensity; 0 at zero intensity.
+const ORB_COLOR_DIM := Color(0.9, 0.55, 0.25) # Low intensity: dim embers.
+const ORB_COLOR_BRIGHT := Color(1.0, 0.95, 0.7) # Full intensity: hot white-gold.
+const ORB_MIN_ALPHA := 0.22 # Peak alpha of an orb at zero intensity: barely there.
+const ORB_MAX_ALPHA := 0.85 # Peak alpha of an orb at full intensity: luminous.
+const ORB_MIN_SPAWN_RATE := 0.4 # orbs/sec floor once past orb_streak_threshold, at zero intensity.
+const ORB_SPEED_MIN_INTENSITY_SCALE := 0.9 # Speed varies only slightly with intensity, per design.
+const ORB_SPEED_MAX_INTENSITY_SCALE := 1.15
+const ORB_EDGE_MARGIN := 30.0 # px outside the viewport edge orbs first appear at, so they drift into view.
+const ORB_ABSORB_DURATION := 0.25 # Final brighten as it's absorbed into AuraCore.
+const ORB_ABSORB_BRIGHTEN := 1.6 # Alpha multiplier during the absorb flash.
+const ORB_VANISH_DURATION := 0.12 # Quick final cut to invisible right at the core.
+const MAX_CONCURRENT_ORBS := 30 # Safety ceiling: the screen must never feel completely covered.
 const AURA_BAR_MAX_GLOW := 1.6
 const AURA_CORE_HORIZONTAL_FRACTION := 0.5 # Dead center horizontally, any resolution/aspect.
 const AURA_CORE_VERTICAL_FRACTION := 0.55 # Where the avatar will stand later.
@@ -63,6 +75,7 @@ const AURA_CORE_VERTICAL_FRACTION := 0.55 # Where the avatar will stand later.
 @onready var _aura_label: Label = $AuraLabel
 @onready var _streak_label: Label = $StreakLabel
 @onready var _aura_core: Node2D = $AuraCore
+@onready var _power_ring: PowerRing = $AuraCore/PowerRing
 
 var intensity: float = 0.0
 
@@ -79,11 +92,9 @@ var _right_zone_tween: Tween
 
 var _orb_spawn_accumulator: float = 0.0
 var _orb_spawn_rate: float = 0.0
-var _orb_ring_radius: float = 0.0
 var _orb_brightness: float = 0.0
 var _orb_current_speed: float = 0.0
-var _orb_jitter_strength: float = 0.0
-var _orb_size_scale: float = ORB_MIN_SIZE_SCALE
+var _active_orb_count: int = 0
 
 
 func _ready() -> void:
@@ -96,6 +107,9 @@ func _ready() -> void:
 	streak_changed.connect(_on_streak_changed)
 	aura_changed.connect(_on_aura_changed)
 	intensity_changed.connect(_on_intensity_changed)
+	_power_ring.ring_min_radius = ring_min_radius
+	_power_ring.ring_max_radius = ring_max_radius
+	_power_ring.ring_pulse_strength = ring_pulse_strength
 	_center_aura_core()
 	get_viewport().size_changed.connect(_center_aura_core)
 	_update_labels()
@@ -247,6 +261,11 @@ func _on_valid_tap(side: String) -> void:
 		_left_zone_tween = tween
 	else:
 		_right_zone_tween = tween
+
+	# The power ring breathes in time with the player's actual tap rhythm.
+	if _last_interval_ms > 0:
+		_power_ring.pulse_period = clampf(_last_interval_ms / 1000.0, 0.15, 3.0)
+
 	if SettingsManager.is_haptics_enabled():
 		Input.vibrate_handheld(HAPTIC_DURATION_MS)
 
@@ -266,17 +285,16 @@ func _on_intensity_changed(new_value: float) -> void:
 	var glow := lerpf(1.0, AURA_BAR_MAX_GLOW, eased)
 	_aura_bar.self_modulate = Color(glow, glow, glow, 1.0)
 
-	# Cache every orb parameter here so the per-frame spawn loop below reacts
-	# to this signal instead of polling `intensity` directly every frame.
-	# Count, speed, size, brightness and jitter all escalate together: calm
-	# drifting embers near the threshold, agitated accelerating energy near
-	# full intensity.
+	# Orb count and brightness escalate with intensity; speed only very
+	# slightly, per design — density and brightness carry the escalation,
+	# not motion.
 	_orb_spawn_rate = lerpf(ORB_MIN_SPAWN_RATE, orb_max_spawn_rate, new_value)
-	_orb_ring_radius = lerpf(orb_spawn_radius_min, orb_spawn_radius_max, new_value)
 	_orb_brightness = new_value
-	_orb_current_speed = lerpf(orb_travel_speed * ORB_MIN_TRAVEL_SPEED_SCALE, orb_travel_speed, new_value)
-	_orb_jitter_strength = lerpf(0.0, ORB_MAX_JITTER_STRENGTH, new_value)
-	_orb_size_scale = lerpf(ORB_MIN_SIZE_SCALE, ORB_MAX_SIZE_SCALE, new_value)
+	_orb_current_speed = orb_travel_speed * lerpf(ORB_SPEED_MIN_INTENSITY_SCALE, ORB_SPEED_MAX_INTENSITY_SCALE, new_value)
+
+	# The power ring marking the convergence point grows and brightens too.
+	_power_ring.target_radius = lerpf(ring_min_radius, ring_max_radius, new_value)
+	_power_ring.target_alpha = new_value
 
 
 func _update_labels() -> void:
@@ -290,61 +308,87 @@ func _update_orb_spawning(delta: float) -> void:
 		return
 	_orb_spawn_accumulator += delta * _orb_spawn_rate
 	while _orb_spawn_accumulator >= 1.0:
-		_orb_spawn_accumulator -= 1.0
-		_spawn_power_orb()
+		# Randomized consumption staggers arrivals into loose waves instead
+		# of a metronomic drip.
+		_orb_spawn_accumulator -= randf_range(0.75, 1.25)
+		if _active_orb_count < MAX_CONCURRENT_ORBS:
+			_spawn_power_orb()
+
+
+func _random_edge_point(viewport_size: Vector2) -> Vector2:
+	match randi() % 4:
+		0:
+			return Vector2(randf() * viewport_size.x, -ORB_EDGE_MARGIN) # top
+		1:
+			return Vector2(viewport_size.x + ORB_EDGE_MARGIN, randf() * viewport_size.y) # right
+		2:
+			return Vector2(randf() * viewport_size.x, viewport_size.y + ORB_EDGE_MARGIN) # bottom
+		_:
+			return Vector2(-ORB_EDGE_MARGIN, randf() * viewport_size.y) # left
 
 
 func _spawn_power_orb() -> void:
-	# Spawns on a ring around AuraCore and is pulled inward to the center,
-	# fading and shrinking as it goes — energy converging on a focal point,
-	# not spraying from a corner. Drawn procedurally (no textures exist yet)
-	# as a bright core plus a softer, larger halo, so it reads as glowing
-	# energy rather than a flat dot.
-	var angle := randf() * TAU
-	var spawn_pos := Vector2(cos(angle), sin(angle)) * _orb_ring_radius
+	# A firefly drifting in from a screen edge toward AuraCore: slow, gentle,
+	# staggered. Speed and wander stay roughly constant across intensity
+	# levels — only how many are on screen and how bright they are escalate.
+	# Drawn procedurally (no textures exist yet) as a bright core plus a
+	# softer halo, so it reads as glowing energy rather than a flat dot.
+	var viewport_size := get_viewport_rect().size
+	var spawn_global := _random_edge_point(viewport_size)
+	var spawn_pos := spawn_global - _aura_core.position
 	var core_color := ORB_COLOR_DIM.lerp(ORB_COLOR_BRIGHT, _orb_brightness)
-	var size_scale := _orb_size_scale
+	var target_alpha := lerpf(ORB_MIN_ALPHA, ORB_MAX_ALPHA, _orb_brightness)
 
 	var orb := Node2D.new()
 	orb.position = spawn_pos
-	orb.scale = Vector2.ONE * size_scale
+	orb.modulate.a = 0.0
 
 	var halo := Polygon2D.new()
 	halo.polygon = _build_circle_points(ORB_HALO_RADIUS)
-	halo.color = Color(core_color.r, core_color.g, core_color.b, core_color.a * ORB_HALO_ALPHA_SCALE)
+	halo.color = Color(core_color.r, core_color.g, core_color.b, ORB_HALO_ALPHA_SCALE)
 	orb.add_child(halo)
 
 	var core := Polygon2D.new()
 	core.polygon = _build_circle_points(ORB_CORE_RADIUS)
-	core.color = core_color
+	core.color = Color(core_color.r, core_color.g, core_color.b, 1.0)
 	orb.add_child(core)
 
 	_aura_core.add_child(orb)
+	_active_orb_count += 1
 
-	var duration := orb_lifetime
-	if _orb_current_speed > 0.0:
-		duration = minf(spawn_pos.length() / _orb_current_speed, orb_lifetime)
+	var per_orb_speed := maxf(_orb_current_speed * (1.0 + randf_range(-orb_speed_variance, orb_speed_variance)), 5.0)
+	var duration := spawn_pos.length() / per_orb_speed
 
-	# Per-orb jitter axis/phase so orbs spawned together don't wobble in lockstep.
-	var jitter_axis := Vector2.RIGHT.rotated(randf() * TAU)
-	var jitter_freq := randf_range(6.0, 10.0)
-	var jitter_strength := _orb_jitter_strength
+	# Per-orb wander axis/phase so orbs spawned together don't drift in lockstep.
+	var drift_axis := Vector2.RIGHT.rotated(randf() * TAU)
+	var drift_freq := randf_range(0.5, 1.1) # Slow, calm — a handful of cycles over the whole trip.
+	var drift_amount := orb_drift_amplitude * randf_range(0.6, 1.0)
 	var update_position := func(t: float) -> void:
 		if not is_instance_valid(orb):
 			return
-		var eased_t := ease(t, 0.4) # Accelerating pull toward the center.
-		var base_pos := spawn_pos.lerp(Vector2.ZERO, eased_t)
-		# Wobble fades out near the end so orbs still land cleanly on the core.
-		var wobble := sin(t * TAU * jitter_freq) * jitter_strength * (1.0 - t)
-		orb.position = base_pos + jitter_axis * wobble
+		var base_pos := spawn_pos.lerp(Vector2.ZERO, t) # Linear: gentle, never a vortex.
+		var wobble := sin(t * TAU * drift_freq) * drift_amount * (1.0 - t)
+		orb.position = base_pos + drift_axis * wobble
 
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_method(update_position, 0.0, 1.0, duration)
-	tween.tween_property(orb, "scale", Vector2.ONE * size_scale * 0.2, duration)
-	tween.tween_property(orb, "modulate:a", 0.0, duration)
-	tween.set_parallel(false)
-	tween.tween_callback(orb.queue_free)
+	var position_tween := create_tween()
+	position_tween.tween_method(update_position, 0.0, 1.0, duration)
+
+	var fade_in_time := minf(orb_fade_in_time, duration * 0.4)
+	var absorb_time := minf(ORB_ABSORB_DURATION, duration * 0.2)
+	var hold_time := maxf(duration - fade_in_time - absorb_time, 0.0)
+
+	var alpha_tween := create_tween()
+	alpha_tween.tween_property(orb, "modulate:a", target_alpha, fade_in_time)
+	if hold_time > 0.0:
+		alpha_tween.tween_interval(hold_time)
+	# Brightens as it's absorbed into the core, then a quick final cut,
+	# rather than just fading away.
+	alpha_tween.tween_property(orb, "modulate:a", target_alpha * ORB_ABSORB_BRIGHTEN, absorb_time)
+	alpha_tween.tween_property(orb, "modulate:a", 0.0, ORB_VANISH_DURATION)
+	alpha_tween.tween_callback(func() -> void:
+		_active_orb_count -= 1
+		orb.queue_free()
+	)
 
 
 func _build_circle_points(radius: float, segments: int = 10) -> PackedVector2Array:

@@ -137,6 +137,8 @@ Contador de tempo pequeno no canto superior direito.
 Núcleo de burst pequeno no canto inferior direito, longe do centro (onde o polegar tapa).
 Faixa do locutor no topo, entra e sai.
 O nome do jogador NÃO aparece durante o duelo — ele sabe quem é, e aquele espaço é palco.
+CLARIFICAÇÃO (2026-08-22): as partículas de aura são pirilampos mágicos que entram lentamente pelas quatro margens do ecrã e convergem devagar sobre o AuraCore — nunca um vórtice rápido nem um giro apertado à volta do centro. A intensidade controla apenas DENSIDADE e BRILHO (quantos pirilampos há em ecrã e quão luminosos são), nunca a velocidade nem a agitação do movimento, que se mantêm sempre calmas. Um "PowerRing" — um brilho circular suave e procedural — marca o ponto de convergência atrás de onde o avatar vai ficar; cresce e brilha com a intensidade, e pulsa ao ritmo do intervalo entre toques do jogador, respirando ao compasso do jogo.
+Razão: a primeira versão (orbs a girar rápido numa órbita apertada à volta do centro) lia-se como agitação/distração, não como poder a acumular-se. O movimento lento e a convergência a partir das margens comunicam "energia a chegar de todo o lado", coerente com o tom mágico do jogo.
 
 **21. AVATAR ANIMADO, NÃO SETAS**
 Sem mãos desenhadas nem indicadores estilo Dance Dance Revolution. O jogador faz o gesto e vê o SEU avatar executá-lo. É espelho, e é daí que nasce o vínculo.
