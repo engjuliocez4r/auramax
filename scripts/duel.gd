@@ -47,6 +47,7 @@ signal burst_ready() # Declared now for the future burst/party effect; not imple
 @export var tap_highlight_duration: float = 0.25
 @export var intensity_rise_speed: float = 2.5 # Slow on purpose: building tension takes time.
 @export var intensity_fall_speed: float = 5.0 # Deliberately faster than rise: lingering on the way down just drags.
+@export var intensity_full_streak: int = 40 # Streak at which the intensity target reaches 1.0; approached via a smoothstep ease (see _complete_pair()), not a linear ratio slamming into a clamp.
 @export var zone_base_alpha: float = 0.0 # Fully transparent at rest; only the tap flash ever raises it.
 
 @export var orb_travel_speed: float = 90.0 # px/sec inward; crossing the screen takes several seconds.
@@ -218,13 +219,18 @@ func _handle_tap(side: String) -> void:
 
 func _complete_pair() -> void:
 	_streak += 1
-	_intensity_target = clampf(float(_streak) / float(milestone_schedule.milestone_size * 2), 0.0, 1.0)
+	# Smoothstep ease from 0 to intensity_full_streak: a continuous build the
+	# player can feel well past streak 10, instead of a linear ratio that
+	# slams into the 1.0 clamp early.
+	var t := clampf(float(_streak) / float(intensity_full_streak), 0.0, 1.0)
+	_intensity_target = t * t * (3.0 - 2.0 * t)
 	streak_changed.emit(_streak)
 	_check_milestones()
 
 
 func _reset_streak() -> void:
 	_pair_pending = false
+	_last_side = "" # First tap after any reset must count, whichever side it lands on.
 	if _streak == 0:
 		return
 	_streak = 0
@@ -314,7 +320,7 @@ func _update_labels() -> void:
 
 
 func _update_orb_spawning(delta: float) -> void:
-	if _streak <= orb_streak_threshold:
+	if _streak < orb_streak_threshold:
 		_orb_spawn_accumulator = 0.0
 		return
 	_orb_spawn_accumulator += delta * _orb_spawn_rate
