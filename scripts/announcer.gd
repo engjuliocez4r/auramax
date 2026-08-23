@@ -16,7 +16,6 @@ extends Control
 @export var exit_duration: float = 0.35
 
 const VOICE_DIR := "res://assets/audio/voice/"
-const CROWD_ROAR_PATH := "res://assets/audio/sfx/crowd_roar.ogg"
 const ENERGY_TIER_COUNT := 4
 
 # event_key -> array of translation keys. Add new lines only here (and to
@@ -26,7 +25,6 @@ const LINE_POOLS := {
 	"milestone_tier_1": ["announcer_milestone_tier1_a", "announcer_milestone_tier1_b"],
 	"milestone_tier_2": ["announcer_milestone_tier2_a", "announcer_milestone_tier2_b"],
 	"milestone_tier_3": ["announcer_milestone_tier3_a", "announcer_milestone_tier3_b"],
-	"burst_fired": ["announcer_burst_fired_a", "announcer_burst_fired_b"],
 }
 
 @onready var _line_label: Label = $LineLabel
@@ -59,12 +57,8 @@ func _connect_to_host_signals() -> void:
 	# Duck-typed on purpose: the host (duel, arcade, ...) never references
 	# this script, so this is the only side of the connection that can wire up.
 	var host := get_parent()
-	if host == null:
-		return
-	if host.has_signal("streak_changed"):
+	if host != null and host.has_signal("streak_changed"):
 		host.streak_changed.connect(_on_host_streak_changed)
-	if host.has_signal("burst_started"):
-		host.burst_started.connect(_on_host_burst_started)
 
 
 func _on_host_streak_changed(new_streak: int) -> void:
@@ -76,13 +70,6 @@ func _on_host_streak_changed(new_streak: int) -> void:
 		var tier := _pick_energy_tier(_next_milestone_index)
 		announce("milestone_tier_%d" % tier)
 		_next_milestone_index += 1
-
-
-func _on_host_burst_started() -> void:
-	# The locutor IS the event (point 15): the burst firing gets its own
-	# top-energy line, plus the crowd roar sound hook below.
-	announce("burst_fired")
-	_play_crowd_roar()
 
 
 func _pick_energy_tier(milestone_index: int) -> int:
@@ -113,10 +100,3 @@ func _play_voice(line_key: String) -> void:
 		return # No voice assets shipped yet — text-only fallback is expected.
 	_voice_player.stream = load(path)
 	_voice_player.play()
-
-
-func _play_crowd_roar() -> void:
-	if not ResourceLoader.exists(CROWD_ROAR_PATH):
-		return # No crowd audio shipped yet — burst still fires silently on this front.
-	_crowd_player.stream = load(CROWD_ROAR_PATH)
-	_crowd_player.play()

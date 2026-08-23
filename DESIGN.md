@@ -89,13 +89,11 @@ A barra só sobe, nunca arrefece. Enche devagar. Ao encher, dispara automaticame
 Visualmente é um núcleo circular de energia a carregar, com três entalhes correspondentes às três repetições do gesto. Não é uma barra genérica.
 CLARIFICAÇÃO (2026-08-22): a acumulação do burst é INDEPENDENTE dos resets do streak (ver ponto 8). Cada marco de streak completo (a cada `milestone_size` pontos) soma uma fatia fixa (`burst_per_milestone`) ao medidor de burst. Esse medidor nunca desce — se o streak reiniciar, o burst mantém tudo o que já ganhou e limita-se a parar de encher até o jogador construir outro marco completo, altura em que continua exatamente de onde tinha ficado. Burst é poupança; streak é o momento presente. Nunca partilham a mesma lógica de reset ou decadência.
 Razão: se o burst esvaziasse junto com o streak, um único erro apagaria minutos de progresso acumulado — puniria a longo prazo por um lapso de curto prazo. Separar as duas lógicas deixa o streak tenso e imediato, e o burst como recompensa de esforço sustentado ao longo de toda a sessão.
-IMPLEMENTADO (2026-08-23): `scripts/duel.gd` + `scripts/burst_core.gd`. Ver secção "ESTADO DO CÓDIGO".
 
 **14. BURST — MOMENTO DE FESTA**
 Ecrã inteiro a piscar, chuva de papel picado dourado, grito da multidão, locutor a anunciar. Cliques multiplicados.
 O objetivo é emocional, não mecânico: é o momento que o miúdo conta ao amigo.
 Nota técnica: partículas em GPU, medir performance em gama baixa — o público não tem topos de gama.
-IMPLEMENTADO (2026-08-23): confetti (`GPUParticles2D`), orbs no máximo, tint dourado a pulsar, vibração reforçada, locutor + `CrowdPlayer` (silencioso até existir áudio). Ver secção "ESTADO DO CÓDIGO".
 
 **15. LOCUTOR**
 Texto grande atravessando o topo, com som de multidão. Aparece só quando há algo a dizer.
@@ -140,7 +138,6 @@ Barra de aura horizontal no topo, com o valor atual à esquerda e o alvo à dire
 Adversário pequeno no canto superior direito. Ao ser derrotado, o cartão parte-se e liberta o cosmético.
 Contador de tempo pequeno no canto superior direito.
 Núcleo de burst pequeno no canto inferior direito, longe do centro (onde o polegar tapa).
-IMPLEMENTADO (2026-08-23): `BurstCore` (`scripts/burst_core.gd`), posicionado no canto inferior direito a partir do viewport ao vivo (`BURST_CORE_MARGIN`), tal como o `AuraCore` é centrado.
 Faixa do locutor no topo, entra e sai.
 O nome do jogador NÃO aparece durante o duelo — ele sabe quem é, e aquele espaço é palco.
 CLARIFICAÇÃO (2026-08-22): as partículas de aura são pirilampos mágicos que entram lentamente pelas quatro margens do ecrã e convergem devagar sobre o AuraCore — nunca um vórtice rápido nem um giro apertado à volta do centro. A intensidade controla apenas DENSIDADE e BRILHO (quantos pirilampos há em ecrã e quão luminosos são), nunca a velocidade nem a agitação do movimento, que se mantêm sempre calmas.
@@ -315,7 +312,6 @@ Aparece no inspetor do Godot e afina-se com slider, sem editar código nem recom
 **49. MÁQUINA DE ESTADOS PARA O DUELO**
 Estados explícitos: `A_COMEÇAR`, `A_JOGAR`, `EM_BURST`, `VITÓRIA`, `DERROTA`.
 Impede bugs de estados sobrepostos ("ganhei e perdi ao mesmo tempo").
-IMPLEMENTADO (2026-08-23): `enum State` em `scripts/duel.gd` (`READY`, `PLAYING`, `BURSTING`, `VICTORY`, `DEFEAT`), sinal `state_changed(new_state)`. Arranca diretamente em `PLAYING` — `READY` fica à espera do ecrã de preparação (ponto 54); `VICTORY`/`DEFEAT` ficam à espera do adversário e do tempo (pontos 16-17).
 
 **50. NOTA DE APRENDIZAGEM**
 O código é escrito com apoio de IA, mas as decisões de arquitetura são do autor e devem ser compreendidas.
@@ -400,18 +396,9 @@ Esta secção existe para que qualquer agente (ou o próprio autor) possa retoma
 **Correção pendente/aplicada**
 - Extração do calendário de milestones (5, 10, depois +3) para um `Resource` partilhado, para eliminar a duplicação entre `duel.gd` e `announcer.gd`.
 
-**Burst e máquina de estados** (este commit)
-- `scripts/duel.gd` — máquina de estados explícita (ponto 49): `enum State { READY, PLAYING, BURSTING, VICTORY, DEFEAT }`, sinal `state_changed(new_state)`. Arranca diretamente em `PLAYING`. Input, lógica de streak e enchimento do burst só correm em `PLAYING`/`BURSTING`.
-- Burst (ponto 13) dispara automaticamente ao encher (`burst_meter >= 1.0`): estado passa a `BURSTING` por `burst_duration` segundos (8 por defeito), cada toque válido multiplica a aura por `burst_multiplier` (5 por defeito), streak e ritmo continuam a funcionar normalmente. No fim, o medidor esvazia para 0 e o estado volta a `PLAYING`.
-- `scripts/burst_core.gd` (`BurstCore`, novo nó filho de `Duel`) — núcleo circular desenhado proceduralmente no canto inferior direito (ponto 20, posicionado a partir do viewport ao vivo como o `AuraCore`): arco de preenchimento a brilhar, brilho interior que aumenta perto do cheio, três entalhes no rebordo (um por repetição do gesto SIX SEVEN, ponto 11). Só reage a `set_fill_ratio()`.
-- Festa (ponto 14), tudo procedural, só durante `BURSTING`: `ConfettiParticles` (`GPUParticles2D`, sem textura, quadrados dourados lisos) a cair pelo ecrã todo, quantidade contida por `confetti_amount`; os orbs de aura saltam para densidade e brilho máximos; `BurstTint` (`ColorRect` de tela inteira) pulsa um tom dourado subtil até `burst_tint_max_alpha`, nunca opaco o suficiente para tapar a jogabilidade; vibração mais forte no momento do disparo; o locutor ganha o pool `burst_fired` ("BURST!!!"/"IT'S GOING OFF!!!" e equivalentes) acrescentado a `announcer_lines.csv` nos seis idiomas; `CrowdPlayer` tenta tocar `assets/audio/sfx/crowd_roar.ogg`, e fica silencioso sem aviso se o ficheiro não existir (ainda não existe).
-- Sinais novos: `state_changed(new_state)`, `burst_started()`, `burst_ended()`, `burst_meter_changed(fill_ratio)`. O placeholder `burst_ready()` foi removido, substituído por estes.
-
 ## Verificado
 
 Executado em headless com `Godot_v4.7.2-stable_win64_console.exe --headless`, exit code 0, sem erros. Testado com harness temporário de 22 toques alternados (removido depois): acumulação de aura, milestone a disparar no streak 5, escalada de tier, e reset por toque inválido — todos confirmados.
-
-**Burst (2026-08-23)**: harness temporário (cena + script, removidos depois) instanciou `duel.tscn` num boot headless real do projeto (autoloads incluídos) e simulou 50 toques alternados: confirmado que o medidor enche a exatamente 5 milestones e dispara `BURSTING` sozinho, que um toque durante o burst rende exatamente `base * (1 + bónus de streak) * burst_multiplier` de aura, e que forçar o relógio do burst a esgotar-se devolve o estado a `PLAYING` com `burst_meter` de volta a 0.
 
 ## Problema conhecido
 
@@ -420,12 +407,13 @@ As zonas verde e roxa estão **demasiado visíveis** no estado atual. Devem esta
 ## Próximos passos, por ordem
 
 1. **Afinar a visibilidade das zonas** — problema acima. É rápido e melhora imediatamente a sensação.
-2. **Ecrã de preparação e demonstração dos lados** (pontos 54 e 55). Liga-se ao estado `READY` já existente em `duel.gd`.
-3. **Gesto SIX SEVEN** (ponto 11). Acelerómetro no eixo Y, ciclo de três repetições, tolerância generosa. Deve emitir sinal próprio para futuros achievements.
-4. **Avatar em camadas** (pontos 21, 23, 29). Placeholders geométricos primeiro.
-5. **Adversário, tempo e condição de vitória** (pontos 16, 17). Liga-se aos estados `VICTORY`/`DEFEAT` já existentes em `duel.gd`.
-6. **Ecrã de casa, O Quarto, opções, onboarding** (pontos 5, 6, 7).
-7. **AchievementManager** — componente que escuta sinais existentes e conta (ponto 53).
+2. **Ecrã de preparação e demonstração dos lados** (pontos 54 e 55).
+3. **Burst e festa** (pontos 13 e 14). O sinal `burst_ready()` já está declarado à espera. Máquina de estados do duelo (ponto 49) entra aqui.
+4. **Gesto SIX SEVEN** (ponto 11). Acelerómetro no eixo Y, ciclo de três repetições, tolerância generosa. Deve emitir sinal próprio para futuros achievements.
+5. **Avatar em camadas** (pontos 21, 23, 29). Placeholders geométricos primeiro.
+6. **Adversário, tempo e condição de vitória** (pontos 16, 17).
+7. **Ecrã de casa, O Quarto, opções, onboarding** (pontos 5, 6, 7).
+8. **AchievementManager** — componente que escuta sinais existentes e conta (ponto 53).
 
 ## Modo de trabalho preferido pelo autor
 
