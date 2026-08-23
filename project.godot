@@ -26,6 +26,10 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
 
+[input_devices]
+
+pointing/emulate_mouse_from_touch=false
+
 [internationalization]
 
 locale/translations=PackedStringArray("res://assets/i18n/announcer_lines.en.translation", "res://assets/i18n/announcer_lines.pt.translation", "res://assets/i18n/announcer_lines.es.translation", "res://assets/i18n/announcer_lines.fr.translation", "res://assets/i18n/announcer_lines.de.translation", "res://assets/i18n/announcer_lines.it.translation")

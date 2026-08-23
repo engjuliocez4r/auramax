@@ -59,6 +59,7 @@ signal burst_ready() # Declared now for the future burst/party effect; not imple
 @export var milestone_schedule: RhythmMilestones = preload("res://assets/data/rhythm_milestones.tres")
 
 const HAPTIC_DURATION_MS := 20
+const TOUCH_MOUSE_DEDUPE_MS := 120 # Windows promotes a touch press into a synthetic mouse click at the OS level; ignore a mouse press this soon after a touch press so one physical tap isn't handled twice.
 
 const ORB_CORE_RADIUS := 3.0
 const ORB_HALO_RADIUS := 9.0
@@ -90,6 +91,7 @@ const AURA_CORE_VERTICAL_FRACTION := 0.55 # Where the avatar will stand later.
 var intensity: float = 0.0
 var burst_meter: float = 0.0 # Savings, not the current moment: only ever grows, independent of streak resets.
 
+var _last_touch_press_time_ms: int = -1000000
 var _last_side: String = ""
 var _last_valid_tap_time_ms: int = -1 # Timestamp of the most recent valid (alternating) tap, of either kind.
 var _pair_pending: bool = false # True once the first tap of a pair has landed, waiting for its second.
@@ -165,10 +167,18 @@ func _on_right_zone_gui_input(event: InputEvent) -> void:
 
 
 func _is_tap_press(event: InputEvent) -> bool:
+	var now_ms := Time.get_ticks_msec()
 	if event is InputEventScreenTouch:
-		return event.pressed
+		if not event.pressed:
+			return false
+		_last_touch_press_time_ms = now_ms
+		return true
 	if event is InputEventMouseButton:
-		return event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+		if not (event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+			return false
+		if now_ms - _last_touch_press_time_ms < TOUCH_MOUSE_DEDUPE_MS:
+			return false
+		return true
 	return false
 
 
