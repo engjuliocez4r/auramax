@@ -137,9 +137,10 @@ Quatro camadas de profundidade: fundo em perspetiva com luzes; multidão em silh
 Barra de aura horizontal no topo, com o valor atual à esquerda e o alvo à direita — legível num relance.
 Adversário pequeno no canto superior direito. Ao ser derrotado, o cartão parte-se e liberta o cosmético.
 Contador de tempo pequeno no canto superior direito.
-Núcleo de burst pequeno no canto inferior direito, longe do centro (onde o polegar tapa).
+Núcleo de burst centrado horizontalmente, na zona inferior do ecrã, por baixo do avatar e com folga clara em relação a ele. Nunca nos cantos: durante o clique alternado é exatamente onde os polegares assentam, e um medidor de canto fica tapado pela mão. O centro fica livre e ganha simetria.
 Faixa do locutor no topo, entra e sai.
 O nome do jogador NÃO aparece durante o duelo — ele sabe quem é, e aquele espaço é palco.
+O contador de streak faz parte do HUD (ver ponto 57).
 CLARIFICAÇÃO (2026-08-22): as partículas de aura são pirilampos mágicos que entram lentamente pelas quatro margens do ecrã e convergem devagar sobre o AuraCore — nunca um vórtice rápido nem um giro apertado à volta do centro. A intensidade controla apenas DENSIDADE e BRILHO (quantos pirilampos há em ecrã e quão luminosos são), nunca a velocidade nem a agitação do movimento, que se mantêm sempre calmas.
 Razão: a primeira versão (orbs a girar rápido numa órbita apertada à volta do centro) lia-se como agitação/distração, não como poder a acumular-se. O movimento lento e a convergência a partir das margens comunicam "energia a chegar de todo o lado", coerente com o tom mágico do jogo.
 CLARIFICAÇÃO (2026-08-22): o "PowerRing" NÃO é um disco sólido a crescer — isso tapava as partículas e matava o efeito. É antes uma sequência de, no máximo, três anéis finos (só contorno, sem preenchimento) que nascem grandes, bem fora da área do avatar, e contraem-se em direção ao AuraCore ao longo da sua vida, esbatendo-se antes de chegar ao centro — nunca colapsam num ponto brilhante. Os anéis são emitidos um a seguir ao outro, num espaçamento aleatório. A intensidade controla apenas a FREQUÊNCIA de emissão e a OPACIDADE, nunca o tamanho, a espessura ou o preenchimento. Reforçam a deriva das partículas para dentro, sem nunca competir com elas pela atenção.
@@ -357,6 +358,32 @@ Referência: ecrãs de "get ready" dos arcades Neo Geo.
 **56. MULTIDÃO REATIVA AO STREAK**
 A multidão de fundo reage à intensidade: parada em repouso, a dançar e saltar à medida que o streak cresce, em festa no burst.
 Nota de arquitetura: não exige mecânica nova. A multidão é apenas mais um consumidor do sinal `intensity_changed` que já existe, tal como a cor das zonas e as bolinhas de poder.
+
+**57. CONTADOR DE STREAK — VISÍVEL DESDE O INÍCIO**
+O contador de streak faz parte do HUD do duelo.
+Razão: o jogador precisa de ver o número para APRENDER a regra. Sem ele, "manter o ritmo" é abstrato; com ele, percebe exatamente o que o jogo conta como acerto e o que quebra a sequência. É também o que lhe permite medir quanto tem de melhorar.
+Comportamento: número sempre visível, discreto, sem competir com o avatar.
+A cada marco (5, 10, 15, 20, ...) o número dá um zoom in-out rápido, em sincronia com a fala do locutor. O número deixa de ser informação e passa a fazer parte da celebração.
+Chegar a 67 streaks numa só sequência é um marco especial — fala própria do locutor, efeito visual distinto e achievement (ver ponto 53).
+
+**58. REFERÊNCIAS VISUAIS ELEITAS**
+Referência MESTRA (versão final do ecrã de duelo): define o ESTILO — traço do avatar, tratamento de luz, silhuetas da multidão, profundidade em quatro camadas, hierarquia visual do ponto 20, barra de aura horizontal com valor atual à esquerda e alvo à direita, e o cartão do adversário.
+IMPORTANTE: o cenário Las Vegas é apenas o exemplo concreto onde esse estilo foi capturado. Cada local do mapa (ponto 40) terá o seu cenário próprio. O que se replica é o TRATAMENTO, não o sítio.
+Referência do BURST: da versão anterior do mesmo ecrã, aproveita-se APENAS o objeto do núcleo de burst — círculo com volume, espiral interior e entalhes metálicos. Alvo visual para quando a forma geométrica atual for substituída por arte.
+Nota: ambas continuam a ser concept art, não assets (ponto 27).
+
+**59. CURVA DE INTENSIDADE**
+A intensidade não é uma razão linear que satura cedo. Sobe por curva suave (smoothstep) até um streak configurável (intensity_full_streak, valor inicial 40).
+Razão: com saturação ao streak 10, todos os streaks acima disso pareciam iguais e a escalada perdia-se. A curva longa mantém a sensação de progresso muito para lá do primeiro marco.
+
+**60. REGRAS DE INPUT APRENDIDAS NA IMPLEMENTAÇÃO**
+- O primeiro toque depois de qualquer reset de streak conta sempre, seja qual for o lado. Rejeitá-lo por "repetir o lado" seria castigar o jogador por algo que ele não podia saber.
+- O Windows promove cada toque físico num clique de rato sintético. Sem tratamento, cada toque era processado duas vezes e o segundo invalidava sempre o par. Resolvido com pointing/emulate_mouse_from_touch=false no project.godot, mais uma dedupe por tempo no código.
+- As partículas começam a emitir exatamente no limiar de streak configurado, não um acima.
+
+**61. MÉTODO DE TRABALHO — LIÇÃO APRENDIDA**
+Quando um prompt pede para REMOVER um mecanismo, tem de dizer explicitamente o que FICA. Ao pedir a remoção do decaimento gradual do streak, foi removido também o relógio que zerava sem input, reintroduzindo um bug já corrigido.
+Refactors de sistemas que já funcionam são a principal fonte de regressões neste projeto. Preferir sempre acrescentar componentes novos que escutam sinais existentes, em vez de reestruturar código validado.
 
 ---
 ---
