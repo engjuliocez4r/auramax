@@ -20,7 +20,6 @@ const SAVE_PATH := "user://save.cfg"
 
 const SECTION_PLAYER := "player"
 const SECTION_COSMETICS := "cosmetics"
-const SECTION_PROGRESS := "progress"
 
 const MAX_PLAYER_NAME_LENGTH := 16
 const DEFAULT_PLAYER_NAME := "Player"
@@ -34,7 +33,6 @@ var aura_level: int = 0
 var coins: int = 0
 var owned_cosmetics: Array = []
 var equipped_cosmetics: Dictionary = {}
-var has_seen_demo: bool = false # Side demonstration (DESIGN.md point 55) only ever runs once per install.
 
 var _config := ConfigFile.new()
 
@@ -94,13 +92,6 @@ func equip_cosmetic(slot: String, cosmetic_id: String) -> void:
 	cosmetics_changed.emit()
 
 
-func mark_demo_seen() -> void:
-	if has_seen_demo:
-		return
-	has_seen_demo = true
-	_save()
-
-
 func _load() -> void:
 	var err := _config.load(SAVE_PATH)
 	if err != OK:
@@ -113,7 +104,6 @@ func _load() -> void:
 	coins = _config.get_value(SECTION_PLAYER, "coins", 0)
 	owned_cosmetics = _config.get_value(SECTION_COSMETICS, "owned", [])
 	equipped_cosmetics = _config.get_value(SECTION_COSMETICS, "equipped", {})
-	has_seen_demo = _config.get_value(SECTION_PROGRESS, "has_seen_demo", false)
 
 
 func _save() -> void:
@@ -124,5 +114,4 @@ func _save() -> void:
 	_config.set_value(SECTION_PLAYER, "coins", coins)
 	_config.set_value(SECTION_COSMETICS, "owned", owned_cosmetics)
 	_config.set_value(SECTION_COSMETICS, "equipped", equipped_cosmetics)
-	_config.set_value(SECTION_PROGRESS, "has_seen_demo", has_seen_demo)
 	_config.save(SAVE_PATH)
