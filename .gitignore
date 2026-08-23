@@ -1,3 +1,6 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Manual tested-state snapshots (see milestones/README.md) — already in git history, kept out of it to avoid duplicating tracked files.
+/milestones/
