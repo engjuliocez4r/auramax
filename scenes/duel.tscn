@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/duel.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/announcer.tscn" id="2"]
 [ext_resource type="Script" path="res://scripts/power_ring.gd" id="3"]
 [ext_resource type="Script" path="res://scripts/burst_core.gd" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/side_demo.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/get_ready.tscn" id="6"]
 
 [node name="Duel" type="Control"]
 anchor_right = 1.0
@@ -66,3 +68,7 @@ color = Color(1, 0.83, 0.25, 0.0)
 emitting = false
 
 [node name="Announcer" parent="." instance=ExtResource("2")]
+
+[node name="SideDemo" parent="." instance=ExtResource("5")]
+
+[node name="GetReady" parent="." instance=ExtResource("6")]

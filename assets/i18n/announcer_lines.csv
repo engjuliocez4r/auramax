@@ -19,3 +19,11 @@ announcer_milestone_tier3_a,LEGENDARY STREAK!!!,SEQUÊNCIA LENDÁRIA!!!,¡RACHA 
 announcer_milestone_tier3_b,THE CROWD IS ROARING!!!,A MULTIDÃO ESTÁ RUGINDO!!!,¡LA MULTITUD RUGE!!!,LA FOULE RUGIT !!!,DIE MENGE TOBT!!!,LA FOLLA RUGGISCE!!!
 announcer_burst_fired_a,BURST!!!,BURST!!!,¡BURST!!!,BURST !!!,BURST!!!,BURST!!!
 announcer_burst_fired_b,IT'S GOING OFF!!!,EXPLODIU TUDO!!!,¡EXPLOTÓ TODO!!!,ÇA EXPLOSE !!!,ES EXPLODIERT!!!,STA ESPLODENDO TUTTO!!!
+announcer_ready_call_a,Are you ready?!,Estás pronto?!,¿Estás listo?!,Prêt à jouer ?!,Bist du bereit?!,Sei pronto?!
+announcer_ready_call_b,Let's go!,Força!,¡Vamos!,Allez !,Auf geht's!,Forza!
+ready_text_get_ready,GET READY,PREPARA-TE,PREPÁRATE,PRÊT ?,MACH DICH BEREIT,PREPARATI
+ready_text_go,GO!,VAI!,¡VAMOS!,GO !,LOS!,VIA!
+ready_text_count_3,3,3,3,3,3,3
+ready_text_count_2,2,2,2,2,2,2
+ready_text_count_1,1,1,1,1,1,1
+side_demo_tap_here,Tap here,Clica aqui,Toca aquí,Touche ici,Hier tippen,Tocca qui

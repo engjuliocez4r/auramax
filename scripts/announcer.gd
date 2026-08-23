@@ -27,6 +27,7 @@ const LINE_POOLS := {
 	"milestone_tier_2": ["announcer_milestone_tier2_a", "announcer_milestone_tier2_b"],
 	"milestone_tier_3": ["announcer_milestone_tier3_a", "announcer_milestone_tier3_b"],
 	"burst_fired": ["announcer_burst_fired_a", "announcer_burst_fired_b"],
+	"ready_call": ["announcer_ready_call_a", "announcer_ready_call_b"],
 }
 
 @onready var _line_label: Label = $LineLabel
@@ -65,6 +66,8 @@ func _connect_to_host_signals() -> void:
 		host.streak_changed.connect(_on_host_streak_changed)
 	if host.has_signal("burst_started"):
 		host.burst_started.connect(_on_host_burst_started)
+	if host.has_signal("ready_screen_started"):
+		host.ready_screen_started.connect(_on_host_ready_screen_started)
 
 
 func _on_host_streak_changed(new_streak: int) -> void:
@@ -83,6 +86,11 @@ func _on_host_burst_started() -> void:
 	# own top-energy line, plus the crowd roar sound hook below.
 	announce("burst_fired")
 	_play_crowd_roar()
+
+
+func _on_host_ready_screen_started() -> void:
+	# Ritual call to attention before every duel (design point 54).
+	announce("ready_call")
 
 
 func _pick_energy_tier(milestone_index: int) -> int:

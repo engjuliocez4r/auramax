@@ -348,12 +348,14 @@ Locutor grita uma chamada ("Estás preparado?" / "Força!"), com som de multidã
 Contagem curta — cerca de dois segundos. Numa primeira vez cria expectativa; à trigésima é uma barreira entre o miúdo e o jogo.
 A DECIDIR POR TESTE: apenas "get ready" seguido de "GO", ou contagem numérica 3-2-1-vai. Testar as duas e sentir qual funciona.
 Nota de localização: as falas não são traduções literais. Cada idioma leva a expressão natural (em PT-PT "Vai!" ou "Força!", não "Ação").
+IMPLEMENTADO (2026-08-23): `scripts/get_ready.gd` + `scenes/get_ready.tscn`, instanciado em `duel.tscn`. Os dois modos de contagem (texto "GET READY"→"GO" e numérico 3-2-1-GO) coexistem lado a lado atrás de `countdown_mode` (`@export enum`), precisamente para testar por sensação qual funciona melhor sem ter de decidir já — nenhum foi apagado a favor do outro.
 
 **55. DEMONSTRAÇÃO DOS LADOS (só no primeiro contacto)**
 Distinta do get ready. Cortinas fechadas, pisca o lado roxo com "clica aqui", depois o verde, e as cortinas abrem.
 Ensina por demonstração, não por texto de tutorial.
 O jogo arranca sozinho no fim da demonstração, sem esperar clique. Mas se o jogador clicar durante a demonstração, corta e arranca logo — quem já sabe salta, quem não sabe é ensinado.
 Referência: ecrãs de "get ready" dos arcades Neo Geo.
+IMPLEMENTADO (2026-08-23): `scripts/side_demo.gd` + `scenes/side_demo.tscn`, instanciado em `duel.tscn`. Persistido via `GameState.has_seen_demo` (`user://save.cfg`) — corre uma única vez por instalação; todos os lançamentos seguintes vão direto para o ecrã de preparação (ponto 54).
 
 **56. MULTIDÃO REATIVA AO STREAK**
 A multidão de fundo reage à intensidade: parada em repouso, a dançar e saltar à medida que o streak cresce, em festa no burst.

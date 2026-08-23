@@ -46,6 +46,7 @@ signal burst_ready() # Fires once burst_meter reaches 1.0 — see _check_milesto
 signal burst_meter_changed(fill_ratio: float)
 signal burst_started()
 signal burst_ended()
+signal ready_screen_started() # Emitted right as the pre-duel ready screen begins; announcer reacts to it.
 
 @export var base_aura: float = 1.0
 @export var streak_bonus_step: float = 0.1
@@ -125,10 +126,13 @@ const BURST_TINT_FADE_OUT_TIME := 0.3 # Seconds to settle back to fully transpar
 @onready var _burst_core: BurstCore = $BurstCore
 @onready var _burst_tint: ColorRect = $BurstTint
 @onready var _confetti: GPUParticles2D = $ConfettiParticles
+@onready var _side_demo: SideDemo = $SideDemo
+@onready var _get_ready: GetReady = $GetReady
 
 var intensity: float = 0.0
 var burst_meter: float = 0.0 # Savings, not the current moment: only ever grows, independent of streak resets.
 var is_bursting: bool = false # No state enum — a flag layered on top of tap/streak logic; never gates input.
+var is_duel_active: bool = false # No state enum — gates _handle_tap only. Set true once the ready screen finishes.
 
 var _last_touch_press_time_ms: int = -1000000
 var _last_side: String = ""
@@ -172,6 +176,10 @@ func _ready() -> void:
 	_layout_confetti()
 	get_viewport().size_changed.connect(_layout_confetti)
 	_update_labels()
+
+	_side_demo.demo_finished.connect(_on_demo_finished)
+	_get_ready.ready_finished.connect(_on_ready_finished)
+	_start_pre_duel_sequence()
 
 
 func _process(delta: float) -> void:
@@ -237,6 +245,8 @@ func _is_tap_press(event: InputEvent) -> bool:
 # ─── Core logic ─────────────────────────────────────────────────────────
 
 func _handle_tap(side: String) -> void:
+	if not is_duel_active:
+		return
 	var now_ms := Time.get_ticks_msec()
 
 	if _last_side != "" and side == _last_side:
@@ -337,6 +347,32 @@ func _end_burst() -> void:
 	burst_meter = 0.0
 	burst_ended.emit()
 	burst_meter_changed.emit(burst_meter)
+
+
+# ─── Pre-duel sequencing (ready screen + first-time demo) ───────────────
+# First ever launch: side demo, then ready screen, then play. Every launch
+# after that: ready screen, then play. Neither step touches is_duel_active
+# until the ready screen actually finishes — see _on_ready_finished().
+
+func _start_pre_duel_sequence() -> void:
+	if GameState.has_seen_demo:
+		_start_ready_screen()
+	else:
+		_side_demo.play()
+
+
+func _on_demo_finished() -> void:
+	GameState.mark_demo_seen()
+	_start_ready_screen()
+
+
+func _start_ready_screen() -> void:
+	ready_screen_started.emit()
+	_get_ready.play()
+
+
+func _on_ready_finished() -> void:
+	is_duel_active = true
 
 
 # ─── Presentation (signal-driven; safe to replace independently) ────────
