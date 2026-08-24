@@ -95,13 +95,27 @@ signal duel_lost() # Story mode only — fires once when the countdown reaches z
 @export var streak_pulse_scale: float = 1.3 # Peak scale of the streak label's zoom on each milestone.
 @export var streak_pulse_duration: float = 0.3 # Full in-out cycle length of that pulse.
 
-@export var milestone_schedule: RhythmMilestones = preload("res://assets/data/rhythm_milestones.tres")
+# Untyped for the same reason as story_opponents below: RhythmMilestones is
+# also a class_name'd script, and duel.gd is the main scene's root script —
+# any custom-class type annotation here risks a stale global class-name
+# cache failing this whole file's parse. threshold_for_index() is called
+# duck-typed at the one call site below.
+@export var milestone_schedule = preload("res://assets/data/rhythm_milestones.tres")
 
 ## Story-mode roster, in defeat order (design point 16). Data-driven: add a
 ## new opponent by dropping another .tres into assets/data/opponents/ and
 ## appending it here, never by touching code. GameState.defeated_opponents
 ## picks the index into this array — see _setup_story_opponent().
-@export var story_opponents: Array[Opponent] = [
+## Untyped on purpose: duel.gd is the main scene's root script, parsed
+## before Godot is guaranteed to have scanned every custom class_name in
+## the project. Typing this against Opponent (or any other class_name'd
+## script written outside the editor) risks a stale global class-name
+## cache failing this whole file's parse on a fresh clone, which kills the
+## entire scene, not just this feature — same failure mode as the reverted
+## get_ready attempt. Elements are still real Opponent instances at
+## runtime; members are accessed duck-typed, like announcer.gd does onto
+## its host.
+@export var story_opponents: Array = [
 	preload("res://assets/data/opponents/opponent_01.tres"),
 	preload("res://assets/data/opponents/opponent_02.tres"),
 	preload("res://assets/data/opponents/opponent_03.tres"),
@@ -148,18 +162,22 @@ const BURST_TINT_FADE_OUT_TIME := 0.3 # Seconds to settle back to fully transpar
 @onready var _aura_label: Label = $AuraLabel
 @onready var _streak_label: Label = $StreakLabel
 @onready var _aura_core: Node2D = $AuraCore
-@onready var _power_ring: PowerRing = $AuraCore/PowerRing
-@onready var _burst_core: BurstCore = $BurstCore
+# Typed against their built-in base class (Node2D/Label/Control), never
+# against the custom class_name (PowerRing, BurstCore, CountdownTimer,
+# OpponentCard) — see the story_opponents comment above for why. Custom
+# members are called duck-typed at the call sites below.
+@onready var _power_ring: Node2D = $AuraCore/PowerRing
+@onready var _burst_core: Node2D = $BurstCore
 @onready var _burst_tint: ColorRect = $BurstTint
 @onready var _confetti: GPUParticles2D = $ConfettiParticles
 @onready var _aura_target_label: Label = $AuraTargetLabel
-@onready var _countdown_timer: CountdownTimer = $CountdownTimer
-@onready var _opponent_card: OpponentCard = $OpponentCard
+@onready var _countdown_timer: Label = $CountdownTimer
+@onready var _opponent_card: Control = $OpponentCard
 
 var intensity: float = 0.0
 var burst_meter: float = 0.0 # Savings, not the current moment: only ever grows, independent of streak resets.
 var is_bursting: bool = false # No state enum — a flag layered on top of tap/streak logic; never gates input.
-var current_opponent: Opponent = null # Public: read by OpponentCard/ResultScreen/GameOverScreen, which duck-type onto this node — see _setup_story_opponent().
+var current_opponent = null # Untyped (see story_opponents comment above) — an Opponent Resource at runtime. Public: read by OpponentCard/ResultScreen/GameOverScreen, which duck-type onto this node — see _setup_story_opponent().
 var _victory_triggered: bool = false # Guards duel_won from firing more than once as aura keeps climbing after the threshold.
 
 var _last_touch_press_time_ms: int = -1000000
