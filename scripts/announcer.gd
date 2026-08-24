@@ -27,6 +27,9 @@ const LINE_POOLS := {
 	"milestone_tier_2": ["announcer_milestone_tier2_a", "announcer_milestone_tier2_b"],
 	"milestone_tier_3": ["announcer_milestone_tier3_a", "announcer_milestone_tier3_b"],
 	"burst_fired": ["announcer_burst_fired_a", "announcer_burst_fired_b"],
+	"victory_perfect": ["announcer_victory_perfect_a", "announcer_victory_perfect_b"],
+	"victory_good": ["announcer_victory_good_a", "announcer_victory_good_b"],
+	"victory_clear": ["announcer_victory_clear_a", "announcer_victory_clear_b"],
 }
 
 @onready var _line_label: Label = $LineLabel

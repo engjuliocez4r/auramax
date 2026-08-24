@@ -46,11 +46,28 @@ signal burst_ready() # Fires once burst_meter reaches 1.0 — see _check_milesto
 signal burst_meter_changed(fill_ratio: float)
 signal burst_started()
 signal burst_ended()
+signal duel_won(final_aura: float) # Story mode only — fires once when _current_aura crosses current_opponent's threshold (design point 64).
+signal duel_lost() # Story mode only — fires once when the countdown reaches zero before duel_won (design point 65).
 
-@export var base_aura: float = 1.0
+## base_aura is derived from the intended duel length and a "sustained, no
+## burst" ceiling, so the first opponent's threshold sits just above what a
+## skilled-but-burstless player can produce and the burst becomes necessary
+## rather than optional (design point 63). Re-derive when tuning:
+##   target duel length         ~75s   (midpoint of the 60-90s target range)
+##   sustained tap rate          3     taps/sec (design assumption)
+##   capped streak multiplier    1 + max_bonus = 3x  (treat the whole duel as
+##                                running at the cap — a simplifying upper
+##                                bound; real play ramps up to it, doesn't
+##                                start there)
+##   sustained aura ceiling  = taps_per_sec * base_aura * (1 + max_bonus) * duel_length
+##                           = 3 * base_aura * 3 * 75 = 675 * base_aura
+##   set that ceiling to ~85% of the first opponent's threshold (30000), so a
+##   burst-less player falls just short:
+##       675 * base_aura = 0.85 * 30000  ->  base_aura ~= 37.8
+@export var base_aura: float = 38.0
 @export var streak_bonus_step: float = 0.1
 @export var max_bonus: float = 2.0
-@export var aura_target: float = 100.0 # Max value shown on AuraBar.
+@export var aura_target: float = 100.0 # Max value shown on AuraBar; overwritten by _setup_story_opponent() once a story opponent is set.
 
 @export var streak_timeout: float = 1.0 # Max seconds allowed between any two consecutive valid taps.
 @export var burst_per_milestone: float = 0.2 # Fixed slice added to burst_meter (0..1) per milestone.
@@ -79,6 +96,16 @@ signal burst_ended()
 @export var streak_pulse_duration: float = 0.3 # Full in-out cycle length of that pulse.
 
 @export var milestone_schedule: RhythmMilestones = preload("res://assets/data/rhythm_milestones.tres")
+
+## Story-mode roster, in defeat order (design point 16). Data-driven: add a
+## new opponent by dropping another .tres into assets/data/opponents/ and
+## appending it here, never by touching code. GameState.defeated_opponents
+## picks the index into this array — see _setup_story_opponent().
+@export var story_opponents: Array[Opponent] = [
+	preload("res://assets/data/opponents/opponent_01.tres"),
+	preload("res://assets/data/opponents/opponent_02.tres"),
+	preload("res://assets/data/opponents/opponent_03.tres"),
+]
 
 const HAPTIC_DURATION_MS := 20
 const BURST_HAPTIC_DURATION_MS := 60 # Stronger pulse at the moment the burst fires (design point 10).
@@ -125,10 +152,15 @@ const BURST_TINT_FADE_OUT_TIME := 0.3 # Seconds to settle back to fully transpar
 @onready var _burst_core: BurstCore = $BurstCore
 @onready var _burst_tint: ColorRect = $BurstTint
 @onready var _confetti: GPUParticles2D = $ConfettiParticles
+@onready var _aura_target_label: Label = $AuraTargetLabel
+@onready var _countdown_timer: CountdownTimer = $CountdownTimer
+@onready var _opponent_card: OpponentCard = $OpponentCard
 
 var intensity: float = 0.0
 var burst_meter: float = 0.0 # Savings, not the current moment: only ever grows, independent of streak resets.
 var is_bursting: bool = false # No state enum — a flag layered on top of tap/streak logic; never gates input.
+var current_opponent: Opponent = null # Public: read by OpponentCard/ResultScreen/GameOverScreen, which duck-type onto this node — see _setup_story_opponent().
+var _victory_triggered: bool = false # Guards duel_won from firing more than once as aura keeps climbing after the threshold.
 
 var _last_touch_press_time_ms: int = -1000000
 var _last_side: String = ""
@@ -172,6 +204,8 @@ func _ready() -> void:
 	_layout_confetti()
 	get_viewport().size_changed.connect(_layout_confetti)
 	_update_labels()
+	aura_changed.connect(_check_victory)
+	_setup_story_opponent()
 
 
 func _process(delta: float) -> void:
@@ -204,6 +238,53 @@ func _center_aura_core() -> void:
 		viewport_size.x * AURA_CORE_HORIZONTAL_FRACTION,
 		viewport_size.y * AURA_CORE_VERTICAL_FRACTION
 	)
+
+
+# ─── Story mode: opponent, timer, victory (design points 16, 17, 62-65) ──
+# Layered on top of the tap/streak/aura/burst logic above, same as the
+# presentation section below: this only reads/initializes _current_aura and
+# aura_target, it never changes how a tap is scored.
+
+func _setup_story_opponent() -> void:
+	var defeated_count := GameState.defeated_opponents.size()
+	if defeated_count >= story_opponents.size():
+		return # All story opponents cleared for now — no opponent, no timer, no threshold.
+	current_opponent = story_opponents[defeated_count]
+
+	# Continuous story aura (point 62): this duel starts at the previous
+	# checkpoint and runs to the current opponent's threshold, never from 0.
+	aura_target = current_opponent.aura_threshold
+	_current_aura = GameState.current_aura
+	_aura_bar.min_value = GameState.current_aura
+	_aura_bar.max_value = aura_target
+	_aura_bar.value = _current_aura
+	_aura_target_label.text = tr("duel_aura_target_label") % int(aura_target)
+	_update_labels()
+
+	_opponent_card.set_opponent(current_opponent)
+	_countdown_timer.time_expired.connect(_on_countdown_expired)
+	_countdown_timer.start(current_opponent.duel_duration)
+
+
+func _check_victory(new_total: float) -> void:
+	if current_opponent == null or _victory_triggered:
+		return
+	if new_total >= aura_target:
+		_victory_triggered = true
+		_countdown_timer.stop()
+		duel_won.emit(new_total)
+
+
+func _on_countdown_expired() -> void:
+	if current_opponent == null or _victory_triggered:
+		return
+	duel_lost.emit()
+
+
+## Called by GameOverScreen after "watch ad" or "spend coins" — the SAME
+## duel resumes with extra time, nothing about aura/streak/burst resets.
+func resume_duel(bonus_seconds: float) -> void:
+	_countdown_timer.start(bonus_seconds)
 
 
 # ─── Input ──────────────────────────────────────────────────────────────

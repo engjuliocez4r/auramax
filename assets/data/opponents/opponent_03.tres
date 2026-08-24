@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Opponent" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/opponent.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "opponent_03"
+display_name = "opponent_03_name"
+aura_threshold = 90000.0
+rank_reward = 20
+coin_reward = 200
+cosmetic_id = "stadium_king_helmet"
+scene_id = "stadium"
+duel_duration = 90.0

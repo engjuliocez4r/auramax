@@ -1,6 +1,6 @@
 # AURAMAX 67 — DOCUMENTO DE DESIGN CONSOLIDADO
 
-Versão de 22 de agosto de 2026. Substitui todos os registos anteriores, incluindo o NotebookLM.
+Versão de 23 de agosto de 2026. Substitui todos os registos anteriores, incluindo o NotebookLM.
 
 Autor e diretor criativo: Julio Cezar (`engjuliocez4r`)
 Motor: Godot 4.7.2 · Repositório: `github.com/engjuliocez4r/auramax`
@@ -56,15 +56,12 @@ O cenário do quarto é personalizável e vendável (barato de produzir, boa mar
 **8. INPUT PRINCIPAL — CLIQUE ALTERNADO**
 Metade esquerda e metade direita do ecrã, alternadamente. Sem botões desenhados a ocupar espaço.
 O bónus de ritmo é o que dá valor ao clique (ver ponto 1).
-CLARIFICAÇÃO (2026-08-22, revista): definição definitiva do streak, substituindo a decisão de decadência gradual registada aqui anteriormente — essa decisão estava errada e foi removida do código. Um ponto de streak é um PAR alternado completo (toque de um lado seguido do lado oposto), nunca um toque isolado. Um par só conta se o intervalo entre os seus dois toques, e o intervalo desde a conclusão do par anterior, ficarem abaixo de `streak_timeout` (1 segundo por defeito). Se esse limite for ultrapassado sem um toque válido, o streak volta a zero IMEDIATAMENTE — sem decadência gradual, sem período de graça. Quando o streak reinicia, a intensidade cai depressa, a emissão de partículas para e as que já estão em ecrã limpam-se rapidamente: o jogo só se move enquanto o jogador se move.
-Os marcos (milestones) acontecem a cada `milestone_size` pontos de streak (5 por defeito), de forma cumulativa e uniforme dentro de um streak ininterrupto (5, 10, 15, ...) — já não há um primeiro/segundo marco com espaçamentos diferentes. O locutor reage em cada marco, e o nível do marco reinicia sempre que o streak reinicia.
-Razão: decair gradualmente fazia o streak parecer um bug em pausa, não uma consequência de parar de jogar. Um reset imediato e total é mais legível e reforça a mecânica central (ponto 1): só a habilidade sustentada no momento conta.
 
 **9. CORTINA DE ESPETÁCULO**
 No início do duelo, as duas metades (verde à esquerda, roxo à direita) abrem-se como cortinas de teatro, mostrando as zonas de toque, e recolhem. Depois disso, cada toque acende brevemente a metade correspondente, de forma subtil. Nunca voltam a ser opacas. Ensina sem parecer tutorial.
 Modo fácil e opções permitem mantê-las visíveis.
-CLARIFICAÇÃO (2026-08-22): as zonas são totalmente transparentes em repouso — sem nenhum split visível no ecrã — e só existem como um breve flash por toque, que sobe e volta a desaparecer por completo. Não escalam com a intensidade nem com mais nada. São feedback funcional — indicam onde tocar — nunca feedback emocional. Toda a escalada emocional (intensidade) flui exclusivamente para os orbs e para a barra de aura, nunca para as zonas.
-Razão: misturar feedback funcional com emocional fazia as zonas dominar o ecrã precisamente quando os efeitos de partículas deviam assumir o protagonismo, e escondia os orbs convergentes.
+O tint das zonas NÃO escala com a intensidade. As zonas são feedback funcional — indicam onde tocar — e mantêm-se visualmente constantes (transparentes em repouso). Só o flash breve de cada toque as altera. Toda a escalada emocional flui para as partículas e a barra de aura, nunca para as zonas.
+Razão registada: misturar feedback funcional com emocional fazia as zonas dominarem o ecrã precisamente quando as partículas deviam assumir, e tapava a convergência das orbs.
 
 **10. FEEDBACK DE TOQUE (sempre ativo)**
 Visual: a metade tocada acende por instantes.
@@ -87,8 +84,6 @@ A jogada ótima é fazer os dois em simultâneo, que é exatamente o gesto do me
 **13. BURST — RECURSO, NÃO MULTIPLICADOR CONTÍNUO**
 A barra só sobe, nunca arrefece. Enche devagar. Ao encher, dispara automaticamente.
 Visualmente é um núcleo circular de energia a carregar, com três entalhes correspondentes às três repetições do gesto. Não é uma barra genérica.
-CLARIFICAÇÃO (2026-08-22): a acumulação do burst é INDEPENDENTE dos resets do streak (ver ponto 8). Cada marco de streak completo (a cada `milestone_size` pontos) soma uma fatia fixa (`burst_per_milestone`) ao medidor de burst. Esse medidor nunca desce — se o streak reiniciar, o burst mantém tudo o que já ganhou e limita-se a parar de encher até o jogador construir outro marco completo, altura em que continua exatamente de onde tinha ficado. Burst é poupança; streak é o momento presente. Nunca partilham a mesma lógica de reset ou decadência.
-Razão: se o burst esvaziasse junto com o streak, um único erro apagaria minutos de progresso acumulado — puniria a longo prazo por um lapso de curto prazo. Separar as duas lógicas deixa o streak tenso e imediato, e o burst como recompensa de esforço sustentado ao longo de toda a sessão.
 
 **14. BURST — MOMENTO DE FESTA**
 Ecrã inteiro a piscar, chuva de papel picado dourado, grito da multidão, locutor a anunciar. Cliques multiplicados.
@@ -105,6 +100,7 @@ O locutor não anuncia o boost — o locutor É o evento. Voz e recompensa são 
 ## MODOS
 
 **16. MODO HISTÓRIA**
+**Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
 Progressão por cenários, cada um com um chefe. Escalada deliberadamente absurda: bairro, feira, estádio de futebol, rua à noite, Las Vegas, Lua, Marte, espaço.
 O adversário não joga ao vivo — é um alvo parado com nome, cara e número (ex. "Rei do Cassino — 50.000"). Sem IA, sem timing. É uma tabela de nomes e números.
 Cada cenário tem o SEU chefe, adequado ao local.
@@ -112,14 +108,16 @@ Ao vencer: baú com moedas mais um cosmético do adversário derrotado (os ócul
 Recompensas em moedas e cosméticos, nunca em poderes — poderes exigem balanceamento.
 
 **17. TEMPO (só no modo história)**
+**Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
 Modelo Super Mario World: generoso, raramente o obstáculo real, mas presente. Impede o nível de ser vagueado indefinidamente.
 O tempo restante converte-se em bónus de aura ou moedas no fim — o que dá razão para repetir níveis já vencidos.
 
 **18. MODO ARCADE**
-Sem tempo, sem limiares. Existe para expressão.
-Medidor de velocidade de cliques, com achievements próprios por atingir determinados ritmos.
-Achievements exclusivos deste modo, ligados a padrões de movimento (à maneira das manobras de skate).
-Achievements locais na primeira versão, não Google Play Games Services.
+Sem tempo, sem limiares. Existe para expressão, não para progressão.
+O jogador escolhe qualquer chefe JÁ DERROTADO no modo história e volta a enfrentá-lo sem pressão, ou simplesmente brinca com o gesto SIX SEVEN livremente.
+Consequência: como só dá acesso a conteúdo já vencido, o arcade NÃO alimenta a aura da história. Não existe atalho — a progressão faz-se sempre no modo história.
+Efeito colateral positivo: quanto mais o jogador avança, mais cenários e chefes tem disponíveis para brincar. O arcade cresce como recompensa implícita.
+Medidor de velocidade de cliques, com achievements próprios ligados a padrões de movimento (à maneira das manobras de skate). Achievements locais na v1, não Google Play Games Services.
 
 **19. GAME OVER E CONTINUAR**
 Se o tempo esgota: ecrã de game over. Duas formas de continuar de onde parou — ver um vídeo com recompensa, ou gastar moedas já possuídas.
@@ -137,20 +135,10 @@ Quatro camadas de profundidade: fundo em perspetiva com luzes; multidão em silh
 Barra de aura horizontal no topo, com o valor atual à esquerda e o alvo à direita — legível num relance.
 Adversário pequeno no canto superior direito. Ao ser derrotado, o cartão parte-se e liberta o cosmético.
 Contador de tempo pequeno no canto superior direito.
-Núcleo de burst centrado horizontalmente, na zona inferior do ecrã, por baixo do avatar e com folga clara em relação a ele. Nunca nos cantos: durante o clique alternado é exatamente onde os polegares assentam, e um medidor de canto fica tapado pela mão. O centro fica livre e ganha simetria.
+Núcleo de burst centrado horizontalmente, na zona inferior do ecrã, por baixo do avatar e com folga clara em relação a ele. NUNCA nos cantos: durante o clique alternado os polegares assentam exatamente nos cantos inferiores, e um medidor aí fica tapado pela mão. O centro fica livre e ganha simetria.
+O contador de streak faz parte do HUD (ver ponto 57).
 Faixa do locutor no topo, entra e sai.
 O nome do jogador NÃO aparece durante o duelo — ele sabe quem é, e aquele espaço é palco.
-O contador de streak faz parte do HUD (ver ponto 57).
-CLARIFICAÇÃO (2026-08-22): as partículas de aura são pirilampos mágicos que entram lentamente pelas quatro margens do ecrã e convergem devagar sobre o AuraCore — nunca um vórtice rápido nem um giro apertado à volta do centro. A intensidade controla apenas DENSIDADE e BRILHO (quantos pirilampos há em ecrã e quão luminosos são), nunca a velocidade nem a agitação do movimento, que se mantêm sempre calmas.
-Razão: a primeira versão (orbs a girar rápido numa órbita apertada à volta do centro) lia-se como agitação/distração, não como poder a acumular-se. O movimento lento e a convergência a partir das margens comunicam "energia a chegar de todo o lado", coerente com o tom mágico do jogo.
-CLARIFICAÇÃO (2026-08-22): o "PowerRing" NÃO é um disco sólido a crescer — isso tapava as partículas e matava o efeito. É antes uma sequência de, no máximo, três anéis finos (só contorno, sem preenchimento) que nascem grandes, bem fora da área do avatar, e contraem-se em direção ao AuraCore ao longo da sua vida, esbatendo-se antes de chegar ao centro — nunca colapsam num ponto brilhante. Os anéis são emitidos um a seguir ao outro, num espaçamento aleatório. A intensidade controla apenas a FREQUÊNCIA de emissão e a OPACIDADE, nunca o tamanho, a espessura ou o preenchimento. Reforçam a deriva das partículas para dentro, sem nunca competir com elas pela atenção.
-Razão: a primeira versão dos anéis (um disco único, sólido, a crescer e a pulsar no centro do ecrã) cobria as partículas e anulava o efeito de convergência que estas construíam. Uma sequência de anéis finos e discretos reforça a mesma ideia sem dominar o ecrã.
-CLARIFICAÇÃO (2026-08-22): a subida e a descida da intensidade são deliberadamente assimétricas. A subida mantém-se lenta (constrói tensão); a descida é agora nitidamente mais rápida (arrefecimento), incluindo um limite de vida mais curto nos orbs já em voo, para que a energia não se arraste em ecrã depois de o jogador parar. Subir devagar cria expectativa; descer devagar só arrasta.
-Os anéis do PowerRing ficaram ainda mais discretos: ligeiramente ovais (mais largos que altos, um esticão subtil). A opacidade máxima foi reduzida substancialmente: os anéis são agora uma sugestão discreta de energia que o jogador quase repara, nunca um elemento gráfico a competir com as partículas.
-CLARIFICAÇÃO (2026-08-22): a contração dos anéis estava demasiado rápida — lia-se como aros disparados para dentro, um projétil, não como energia a fechar-se. Corrigido para um fecho lento e legível, com duração de alguns segundos, que desacelera à medida que se aproxima do centro (ease-out), em vez de acelerar para dentro. Os anéis continuam apenas ligeiramente mais rápidos do que as partículas — o suficiente para uma sensação subtil de profundidade (paralaxe), nunca uma corrida. Na dúvida, o lado lento é sempre a escolha certa. A emissão também ficou mais espaçada, para que cada anel tenha espaço para ser notado por si só.
-Razão: um anel devia sentir-se como um campo de energia a apertar-se suavemente, não como algo disparado na direção do jogador — a velocidade anterior contradizia directamente o tom mágico e calmo pretendido para toda a escalada de intensidade.
-CLARIFICAÇÃO (2026-08-22): correção de implementação — um anel NUNCA se desloca pelo ecrã. O centro está sempre fixo na posição do AuraCore, do início ao fim da sua vida; a única coisa animada é o RAIO, que encolhe de um valor maior do que a diagonal do ecrã (por isso começa fora dele) até um raio final pequeno junto ao centro, esbatendo-se antes de lá chegar. É uma íris ou uma boca a fechar-se sobre um ponto fixo, nunca um objeto a viajar pelo ecrã.
-Razão: uma versão anterior deslocava (translacionava) o anel do bordo do ecrã até ao centro antes de o fazer encolher — isso é uma implementação diferente e errada do conceito de "anel a fechar-se"; o efeito pretendido sempre foi puramente um raio a contrair-se sobre um centro imóvel.
 
 **21. AVATAR ANIMADO, NÃO SETAS**
 Sem mãos desenhadas nem indicadores estilo Dance Dance Revolution. O jogador faz o gesto e vê o SEU avatar executá-lo. É espelho, e é daí que nasce o vínculo.
@@ -359,31 +347,72 @@ Referência: ecrãs de "get ready" dos arcades Neo Geo.
 A multidão de fundo reage à intensidade: parada em repouso, a dançar e saltar à medida que o streak cresce, em festa no burst.
 Nota de arquitetura: não exige mecânica nova. A multidão é apenas mais um consumidor do sinal `intensity_changed` que já existe, tal como a cor das zonas e as bolinhas de poder.
 
+
+---
+
+## PROGRESSÃO, ECONOMIA E LIÇÕES DE IMPLEMENTAÇÃO
+
 **57. CONTADOR DE STREAK — VISÍVEL DESDE O INÍCIO**
-O contador de streak faz parte do HUD do duelo.
-Razão: o jogador precisa de ver o número para APRENDER a regra. Sem ele, "manter o ritmo" é abstrato; com ele, percebe exatamente o que o jogo conta como acerto e o que quebra a sequência. É também o que lhe permite medir quanto tem de melhorar.
-Comportamento: número sempre visível, discreto, sem competir com o avatar.
-A cada marco (5, 10, 15, 20, ...) o número dá um zoom in-out rápido, em sincronia com a fala do locutor. O número deixa de ser informação e passa a fazer parte da celebração.
-Chegar a 67 streaks numa só sequência é um marco especial — fala própria do locutor, efeito visual distinto e achievement (ver ponto 53).
+Faz parte do HUD do duelo.
+Razão: o jogador precisa de ver o número para APRENDER a regra. Sem ele, "manter o ritmo" é abstrato; com ele, percebe exatamente o que conta como acerto e o que quebra a sequência.
+Número sempre visível, discreto, sem competir com o avatar. A cada marco (5, 10, 15, ...) dá um zoom in-out rápido em sincronia com a fala do locutor — deixa de ser informação e passa a fazer parte da celebração.
+Chegar a 67 streaks numa só sequência é marco especial: fala própria do locutor, efeito visual distinto e achievement (ver ponto 53).
 
 **58. REFERÊNCIAS VISUAIS ELEITAS**
-Referência MESTRA (versão final do ecrã de duelo): define o ESTILO — traço do avatar, tratamento de luz, silhuetas da multidão, profundidade em quatro camadas, hierarquia visual do ponto 20, barra de aura horizontal com valor atual à esquerda e alvo à direita, e o cartão do adversário.
-IMPORTANTE: o cenário Las Vegas é apenas o exemplo concreto onde esse estilo foi capturado. Cada local do mapa (ponto 40) terá o seu cenário próprio. O que se replica é o TRATAMENTO, não o sítio.
-Referência do BURST: da versão anterior do mesmo ecrã, aproveita-se APENAS o objeto do núcleo de burst — círculo com volume, espiral interior e entalhes metálicos. Alvo visual para quando a forma geométrica atual for substituída por arte.
-Nota: ambas continuam a ser concept art, não assets (ponto 27).
+Referência MESTRA (versão final do ecrã de duelo): define o ESTILO — traço do avatar, tratamento de luz, silhuetas da multidão, profundidade em quatro camadas, hierarquia do ponto 20, barra de aura horizontal com valor atual à esquerda e alvo à direita, cartão do adversário.
+IMPORTANTE: o cenário Las Vegas é apenas o exemplo onde esse estilo foi capturado. Cada local do mapa (ponto 40) terá cenário próprio. Replica-se o TRATAMENTO, não o sítio.
+Referência do BURST: da versão anterior do mesmo ecrã, aproveita-se APENAS o objeto do núcleo — círculo com volume, espiral interior, entalhes metálicos. Alvo visual para quando a forma geométrica for substituída por arte.
+Ambas continuam a ser concept art, não assets (ponto 27).
 
 **59. CURVA DE INTENSIDADE**
-A intensidade não é uma razão linear que satura cedo. Sobe por curva suave (smoothstep) até um streak configurável (intensity_full_streak, valor inicial 40).
-Razão: com saturação ao streak 10, todos os streaks acima disso pareciam iguais e a escalada perdia-se. A curva longa mantém a sensação de progresso muito para lá do primeiro marco.
+A intensidade não é razão linear que satura cedo. Sobe por curva suave (smoothstep) até um streak configurável (`intensity_full_streak`, valor inicial 40).
+Razão: com saturação ao streak 10, todos os streaks acima pareciam iguais e a escalada perdia-se.
 
 **60. REGRAS DE INPUT APRENDIDAS NA IMPLEMENTAÇÃO**
-- O primeiro toque depois de qualquer reset de streak conta sempre, seja qual for o lado. Rejeitá-lo por "repetir o lado" seria castigar o jogador por algo que ele não podia saber.
-- O Windows promove cada toque físico num clique de rato sintético. Sem tratamento, cada toque era processado duas vezes e o segundo invalidava sempre o par. Resolvido com pointing/emulate_mouse_from_touch=false no project.godot, mais uma dedupe por tempo no código.
+- O primeiro toque depois de qualquer reset de streak conta sempre, seja qual for o lado. Rejeitá-lo por "repetir o lado" castigaria o jogador por algo que não podia saber.
+- O Windows promove cada toque físico num clique de rato sintético. Sem tratamento, cada toque era processado duas vezes e o segundo invalidava sempre o par. Resolvido com `pointing/emulate_mouse_from_touch=false` no `project.godot`, mais dedupe por tempo no código.
 - As partículas começam a emitir exatamente no limiar de streak configurado, não um acima.
 
 **61. MÉTODO DE TRABALHO — LIÇÃO APRENDIDA**
 Quando um prompt pede para REMOVER um mecanismo, tem de dizer explicitamente o que FICA. Ao pedir a remoção do decaimento gradual do streak, foi removido também o relógio que zerava sem input, reintroduzindo um bug já corrigido.
 Refactors de sistemas que já funcionam são a principal fonte de regressões neste projeto. Preferir sempre acrescentar componentes novos que escutam sinais existentes, em vez de reestruturar código validado.
+Corolário aprendido com o get ready: features que dependem de ecrãs ainda inexistentes (casa, onboarding) não devem ser enxertadas no duelo. Construir na ordem certa evita malabarismo.
+
+**62. MODELO DE PROGRESSÃO — AURA E RANK**
+**Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
+Duas moedas de progresso, com propósitos distintos:
+- **AURA** — o progresso da história. Contínuo de 0 até 1.000.000. NUNCA zera entre duelos. Cada adversário é um posto de controlo: derrotado o chefe dos 30.000, o duelo seguinte começa nos 30.000 e vai até aos 60.000, e assim por diante. Chegar ao milhão é o fim da história: o jogador torna-se o Auramax 67.
+- **RANK** — o nível permanente do jogador, o número que se mostra aos amigos ("sou rank 32"). Sobe com um valor fixo por chefe derrotado, mais o bónus do tempo que sobrou.
+Nomenclatura na interface: no duelo a barra chama-se AURA; no ecrã de casa o permanente chama-se RANK. Palavra curta e universal para 9-13 anos.
+DECISÃO ANTI-BATOTA: a aura farmada não converte em rank. Clicar muito depressa não dá progresso permanente direto — dá uma vitória mais rápida, e é a rapidez que paga, via bónus de tempo. O incentivo continua, apontado ao sítio certo.
+
+**63. A DIFICULDADE VIVE NOS INTERVALOS**
+**Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento. `base_aura` recalculado a partir da duração pretendida do duelo; os três primeiros intervalos entre adversários mantidos iguais (30.000 cada).
+O que define a dificuldade não é o número do adversário, é o SALTO entre adversários consecutivos. De 0 a 30.000 é um salto de 30.000; de 30.000 a 60.000 é outro igual; se o terceiro for 120.000, o salto duplica.
+A curva afina-se nos intervalos, nunca nos totais.
+PROBLEMA IDENTIFICADO A JOGAR: com alvo de 100 e ~1-3 de aura por clique, o primeiro adversário cai em segundos e o burst nem chega a encher — perde a função. O alvo tem de ser derivado da DURAÇÃO PRETENDIDA do duelo (quanta aura um jogador médio produz nesse tempo) e ficar ligeiramente acima, obrigando ao uso do burst.
+O primeiro adversário deve ser fácil para ensinar o loop, mas nunca trivial ao ponto de o jogador vencer sem descobrir que o burst existe.
+
+**64. ECRÃ DE RESULTADO DO DUELO**
+**Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
+Sequência ao ultrapassar o número do adversário:
+1. O cartão do adversário parte-se e liberta o cosmético (ponto 20)
+2. O tempo para
+3. Ecrã ou popup de resultado, mostrando por ordem: aura total atingida; tempo restante convertido em bónus de rank; rank ganho pela vitória; barra de rank a encher e a subir de nível se atingir; moedas ganhas; cerimónia do troféu, com o cosmético a passar para o jogador (ponto 39); mensagem do locutor conforme o desempenho
+4. Botão para continuar → mapa ou casa
+O ecrã de resultado é onde todo o esforço se converte em recompensa visível. É ele que fecha o loop.
+
+**65. GAME OVER — O QUE SE PERDE**
+**Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
+Se o tempo esgota, o jogador escolhe entre: ver um vídeo com recompensa, gastar moedas que já possui, ou aceitar o game over.
+Aceitar o game over devolve a aura ao valor do último posto de controlo (o chefe anterior). O progresso do duelo em curso perde-se, mas nunca o que já estava consolidado.
+O estado é guardado automaticamente pelo `GameState`.
+Confirma-se o ponto 19: nunca há compra de moedas com dinheiro real neste ecrã.
+
+**66. MOEDAS**
+Ganham-se ao vencer cada chefe e servem para comprar cosméticos na loja, ou para continuar após game over.
+Existirão pacotes de moedas comprados com dinheiro real, disponíveis APENAS na loja, em momento neutro (ponto 19).
+AVISO A RESOLVER ANTES DA SUBMISSÃO (liga ao ponto 32): compras integradas com público de 9-13 anos colocam a app na categoria infantil da Play Store, com regras próprias sobre apresentação e pressão de compra. Não construir o sistema assumindo que passa sem escrutínio.
 
 ---
 ---
@@ -420,27 +449,53 @@ Esta secção existe para que qualquer agente (ou o próprio autor) possa retoma
 - Orbs desenhados proceduralmente (`Polygon2D`) por não existirem texturas.
 - Sinais: `valid_tap`, `invalid_tap`, `streak_changed`, `aura_changed`, `intensity_changed`, `milestone_reached`, `burst_ready` (declarado, não implementado).
 
-**Correção pendente/aplicada**
-- Extração do calendário de milestones (5, 10, depois +3) para um `Resource` partilhado, para eliminar a duplicação entre `duel.gd` e `announcer.gd`.
+**Correções e afinações aplicadas**
+- Extração do calendário de milestones para um `Resource` partilhado (`assets/data/rhythm_milestones.tres`), eliminando a duplicação entre `duel.gd` e `announcer.gd`.
+- Zonas totalmente transparentes em repouso (`zone_base_alpha = 0.0`), desacopladas da intensidade.
+- Orbs refeitas: entram lentamente das bordas do ecrã como pirilampos e convergem para `AuraCore`, centrado a 55% da altura. Intensidade controla densidade e brilho, nunca velocidade.
+- `PowerRing`: anéis finos, ovais, muito ténues, fixos em `AuraCore`, contraindo apenas por raio (íris a fechar). Máximo 3 em simultâneo.
+- Streak reset conduzido por RELÓGIO em `_process`, independente de input. Reset total e instantâneo ao fim de `streak_timeout` (1 s), sem decaimento gradual.
+- `_last_side` limpo no reset, para o primeiro toque seguinte contar em qualquer lado.
+- Curva de intensidade em smoothstep até `intensity_full_streak` (40).
+
+**Burst e celebração** (componente separado, sem máquina de estados)
+- `scenes/burst_core.tscn` / `scripts/burst_core.gd` — núcleo circular centrado horizontalmente na zona inferior, desenhado proceduralmente com arco de preenchimento, brilho interior e três entalhes (as três repetições do gesto).
+- `burst_meter` enche por marcos, NUNCA decresce, dispara automaticamente ao encher.
+- Implementado como flag booleana `is_bursting`, **NÃO** como máquina de estados — a tentativa com `State` enum causou regressão total e foi revertida. Input nunca é bloqueado.
+- Durante o burst: aura multiplicada por `burst_multiplier`, confetti dourado em GPU particles, tint dourado no ecrã, orbs no máximo, háptico reforçado, locutor com pool próprio.
+- Sinais novos: `burst_meter_changed`, `burst_started`, `burst_ended`.
+- Contador de streak com zoom in-out a cada marco.
+
+**Adversário, tempo, vitória e ecrã de resultado** (pontos 16, 17, 62, 63, 64, 65)
+- `scripts/opponent.gd` (`Opponent`, `Resource`) — `id`, `display_name` (chave de tradução), `aura_threshold`, `rank_reward`, `coin_reward`, `cosmetic_id`, `scene_id`, `duel_duration`. Três instâncias em `assets/data/opponents/` (30.000 / 60.000 / 90.000 — os três primeiros intervalos iguais, por decisão do ponto 63).
+- `duel.gd` ganhou `story_opponents: Array[Opponent]` (data-driven, editável no inspetor) e `current_opponent`, escolhido em `_setup_story_opponent()` por `GameState.defeated_opponents.size()` — sem enum de estado, só um índice.
+- **`base_aura` recalculado** de 1.0 para 38.0, a partir da duração pretendida do duelo (~75 s) e de um teto "sem burst, jogador sustido" — ver o comentário com a conta completa junto ao `@export` em `duel.gd`. Garante que o primeiro adversário exige burst, sem o tornar impossível sem ele.
+- **Aura contínua** (ponto 62): `GameState.current_aura` e `GameState.defeated_opponents` (novos campos persistidos). Cada duelo arranca no posto de controlo anterior (`_setup_story_opponent()` lê `GameState.current_aura`) e só avança quando `ResultScreen` comita a vitória — nunca durante o farming.
+- **`scripts/countdown_timer.gd`** (`CountdownTimer`, extends `Label`) — só modo história, contador pequeno no canto superior direito. `default_duel_duration` (90 s) expõe o fallback; a duração normal vem de `Opponent.duel_duration`. Sinais `time_updated(seconds_left)` / `time_expired()`.
+- **`scripts/opponent_card.gd`** (`OpponentCard`) — cartão pequeno no canto superior direito (retrato placeholder, nome, limiar). Duck-typed ao `duel_won` do duelo, como o `announcer.gd`; parte-se e liberta o cosmético ao vencer.
+- **`scripts/result_screen.gd`** (`ResultScreen`) e **`scripts/game_over_screen.gd`** (`GameOverScreen`) — popups full-screen, duck-typed a `duel_won` / `duel_lost`. `duel.gd` emite os dois sinais, guardados por `_victory_triggered`, sem tocar na lógica de tap/streak/burst.
+  - `ResultScreen` é o único sítio que converte vitória em progresso permanente (decisão anti-batota do ponto 62): comita `GameState` (aura, adversário derrotado, moedas, cosmético, rank) assim que `duel_won` dispara, e só DEPOIS anima a revelação em sequência (aura total, bónus de tempo → rank via `time_to_rank_ratio`, rank de vitória, barra de rank a encher com level-up, moedas, cerimónia do troféu, fala do locutor por desempenho). Fechar a app a meio da animação não perde nada.
+  - `GameOverScreen` oferece as três saídas do ponto 65: vídeo (placeholder) e moedas retomam o MESMO duelo via `duel.resume_duel()`; aceitar derrota recarrega a cena, que volta ao último posto de controlo — sem escrita extra, porque `GameState.current_aura` nunca avançou durante o duelo em curso.
+- **`GameState`**: `aura_level` renomeado para `rank`/`rank_points` (nomenclatura do ponto 62), mais `current_aura` e `defeated_opponents`, todos persistidos em `save.cfg`.
+- Novas chaves de tradução em `announcer_lines.csv` (nomes dos adversários, HUD do duelo, ecrã de resultado, game over, falas de vitória do locutor) nas seis línguas suportadas.
 
 ## Verificado
 
-Executado em headless com `Godot_v4.7.2-stable_win64_console.exe --headless`, exit code 0, sem erros. Testado com harness temporário de 22 toques alternados (removido depois): acumulação de aura, milestone a disparar no streak 5, escalada de tier, e reset por toque inválido — todos confirmados.
+Fundação (tap/streak/aura/burst) confirmada em headless na sessão anterior — ver git log. **Este bloco (adversário/tempo/vitória/resultado) ainda não foi executado em headless**, por pedido explícito do autor; fica para teste manual no editor.
 
-## Problema conhecido
+## Problemas conhecidos
 
-As zonas verde e roxa estão **demasiado visíveis** no estado atual. Devem estar quase invisíveis em repouso e só acender subtilmente ao toque. Ajustar `zone_base_alpha` (~0.04) e `zone_max_alpha` (~0.18) no inspetor, ou rever os valores por defeito.
+- **Ecrã de preparação e demonstração dos lados** (pontos 54 e 55) foram tentados e revertidos: dependem de ecrãs que ainda não existem (casa, onboarding), e o enxerto no duelo congelou a cena. Adiados para a fase dos ecrãs.
+- **O gesto SIX SEVEN não é testável no computador** — exige telemóvel físico, via exportação Android ou remote deploy.
+- **Sem ecrã de casa/mapa ainda**: o botão "Continuar" do ecrã de resultado e o "Aceitar derrota" do game over recarregam a própria cena do duelo (`reload_current_scene`), em vez de navegar para um mapa — provisório até existir esse ecrã (ponto 40).
 
 ## Próximos passos, por ordem
 
-1. **Afinar a visibilidade das zonas** — problema acima. É rápido e melhora imediatamente a sensação.
-2. **Ecrã de preparação e demonstração dos lados** (pontos 54 e 55).
-3. **Burst e festa** (pontos 13 e 14). O sinal `burst_ready()` já está declarado à espera. Máquina de estados do duelo (ponto 49) entra aqui.
-4. **Gesto SIX SEVEN** (ponto 11). Acelerómetro no eixo Y, ciclo de três repetições, tolerância generosa. Deve emitir sinal próprio para futuros achievements.
-5. **Avatar em camadas** (pontos 21, 23, 29). Placeholders geométricos primeiro.
-6. **Adversário, tempo e condição de vitória** (pontos 16, 17).
-7. **Ecrã de casa, O Quarto, opções, onboarding** (pontos 5, 6, 7).
-8. **AchievementManager** — componente que escuta sinais existentes e conta (ponto 53).
+1. **Gesto SIX SEVEN** (ponto 11). Requer telemóvel físico para testar.
+2. **Avatar em camadas** (pontos 21, 23, 29). Placeholders geométricos primeiro.
+3. **Ecrã de casa, mapa, O Quarto, opções, onboarding** (pontos 5, 6, 7, 40).
+4. **Get ready e demonstração dos lados** (pontos 54, 55), agora que há de onde vir.
+5. **AchievementManager** (ponto 53).
 
 ## Modo de trabalho preferido pelo autor
 

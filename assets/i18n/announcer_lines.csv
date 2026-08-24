@@ -19,3 +19,27 @@ announcer_milestone_tier3_a,LEGENDARY STREAK!!!,SEQUÊNCIA LENDÁRIA!!!,¡RACHA 
 announcer_milestone_tier3_b,THE CROWD IS ROARING!!!,A MULTIDÃO ESTÁ RUGINDO!!!,¡LA MULTITUD RUGE!!!,LA FOULE RUGIT !!!,DIE MENGE TOBT!!!,LA FOLLA RUGGISCE!!!
 announcer_burst_fired_a,BURST!!!,BURST!!!,¡BURST!!!,BURST !!!,BURST!!!,BURST!!!
 announcer_burst_fired_b,IT'S GOING OFF!!!,EXPLODIU TUDO!!!,¡EXPLOTÓ TODO!!!,ÇA EXPLOSE !!!,ES EXPLODIERT!!!,STA ESPLODENDO TUTTO!!!
+announcer_victory_perfect_a,FLAWLESS VICTORY!,VITÓRIA PERFEITA!,¡VICTORIA PERFECTA!,VICTOIRE PARFAITE !,PERFEKTER SIEG!,VITTORIA PERFETTA!
+announcer_victory_perfect_b,YOU CRUSHED IT!,VOCÊ ARRASOU!,¡LO APLASTASTE!,TU AS TOUT ÉCRASÉ !,DU HAST ALLES ZERSTÖRT!,HAI SPACCATO TUTTO!
+announcer_victory_good_a,Great win!,Ótima vitória!,¡Gran victoria!,Belle victoire !,Toller Sieg!,Ottima vittoria!
+announcer_victory_good_b,You've got this down!,Você já manda bem nisso!,¡Ya lo dominas!,Tu maîtrises ça !,Du hast das drauf!,Ci hai preso la mano!
+announcer_victory_clear_a,Victory!,Vitória!,¡Victoria!,Victoire !,Sieg!,Vittoria!
+announcer_victory_clear_b,That was close!,Essa foi por pouco!,¡Eso estuvo cerca!,C'était juste !,Das war knapp!,C'è mancato poco!
+opponent_01_name,Block Bully,Valentão do Bairro,Matón del Barrio,Caïd du Quartier,Viertel-Schläger,Bullo di Quartiere
+opponent_02_name,Fair Champion,Campeão da Feira,Campeón de la Feria,Champion de la Fête Foraine,Jahrmarkt-Champion,Campione della Fiera
+opponent_03_name,Stadium King,Rei do Estádio,Rey del Estadio,Roi du Stade,König des Stadions,Re dello Stadio
+duel_aura_target_label,Target: %d,Alvo: %d,Objetivo: %d,Cible : %d,Ziel: %d,Obiettivo: %d
+duel_time_label,%ds,%ds,%ds,%ds,%ds,%ds
+opponent_card_threshold_label,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA
+opponent_card_cosmetic_label,Unlocked!,Desbloqueado!,¡Desbloqueado!,Débloqué !,Freigeschaltet!,Sbloccato!
+result_aura_label,Aura reached: %d,Aura atingida: %d,Aura alcanzada: %d,Aura atteinte : %d,Erreichte Aura: %d,Aura raggiunta: %d
+result_time_bonus_label,Time bonus: +%d rank,Bónus de tempo: +%d rank,Bono de tiempo: +%d rank,Bonus de temps : +%d rank,Zeitbonus: +%d Rang,Bonus tempo: +%d rank
+result_victory_rank_label,Victory rank: +%d,Rank de vitória: +%d,Rank de victoria: +%d,Rang de victoire : +%d,Sieg-Rang: +%d,Rank di vittoria: +%d
+result_rank_level_label,Rank %d,Rank %d,Rank %d,Rang %d,Rang %d,Rank %d
+result_coins_label,Coins: +%d,Moedas: +%d,Monedas: +%d,Pièces : +%d,Münzen: +%d,Monete: +%d
+result_trophy_label,New cosmetic unlocked!,Novo cosmético desbloqueado!,¡Nuevo cosmético desbloqueado!,Nouveau cosmétique débloqué !,Neues Kosmetikitem freigeschaltet!,Nuovo cosmetico sbloccato!
+result_continue_button,Continue,Continuar,Continuar,Continuer,Weiter,Continua
+game_over_title,Time's Up,Tempo Esgotado,Se Acabó el Tiempo,Temps Écoulé,Zeit Abgelaufen,Tempo Scaduto
+game_over_watch_ad_button,Watch Video (+Time),Ver Vídeo (+Tempo),Ver Vídeo (+Tiempo),Voir la Vidéo (+Temps),Video Ansehen (+Zeit),Guarda Video (+Tempo)
+game_over_spend_coins_button,Spend %d Coins (+Time),Gastar %d Moedas (+Tempo),Gastar %d Monedas (+Tiempo),Dépenser %d Pièces (+Temps),%d Münzen Ausgeben (+Zeit),Spendi %d Monete (+Tempo)
+game_over_accept_defeat_button,Accept Defeat,Aceitar Derrota,Aceptar Derrota,Accepter la Défaite,Niederlage Akzeptieren,Accetta la Sconfitta

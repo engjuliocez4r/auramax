@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Opponent" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/opponent.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "opponent_01"
+display_name = "opponent_01_name"
+aura_threshold = 30000.0
+rank_reward = 10
+coin_reward = 100
+cosmetic_id = "street_bully_glasses"
+scene_id = "street"
+duel_duration = 90.0
