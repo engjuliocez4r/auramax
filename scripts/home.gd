@@ -1,5 +1,5 @@
 extends Control
-## Home screen (design point 6): player identity and rank progress in the
+## Home screen (design point 6): player identity and ego progress in the
 ## top spot, a placeholder avatar centered, and a deliberately unequal
 ## button hierarchy below — Story/Arcade as the two big peers, The Room as
 ## one medium button, Settings tucked into a small corner icon. Not four
@@ -9,10 +9,10 @@ extends Control
 ## Godot is guaranteed to have scanned every custom class_name in the
 ## project — see duel.gd's earlier revert of the same mistake.
 
-@export var rank_points_per_level: int = 100 # Placeholder rank-bar scale, mirrors ResultScreen's rank_per_level default until a shared rank curve exists.
+@export var ego_points_per_level: int = 100 # Placeholder ego-bar scale, mirrors ResultScreen's ego_per_level default until a shared ego curve exists.
 
 @onready var _name_label: Label = $NameLabel
-@onready var _rank_bar: ProgressBar = $RankBar
+@onready var _ego_bar: ProgressBar = $EgoBar
 @onready var _settings_button: Button = $SettingsButton
 @onready var _story_button: Button = $StoryButton
 @onready var _arcade_button: Button = $ArcadeButton
@@ -31,28 +31,28 @@ func _ready() -> void:
 	_the_room_button.pressed.connect(_on_the_room_pressed)
 
 	GameState.player_name_changed.connect(_on_player_name_changed)
-	GameState.rank_points_changed.connect(_on_rank_progress_changed)
-	GameState.rank_changed.connect(_on_rank_progress_changed)
+	GameState.ego_points_changed.connect(_on_ego_progress_changed)
+	GameState.ego_changed.connect(_on_ego_progress_changed)
 
 	_update_name_label()
-	_update_rank_bar()
+	_update_ego_bar()
 
 
 func _on_player_name_changed(_new_name: String) -> void:
 	_update_name_label()
 
 
-func _on_rank_progress_changed(_value: int) -> void:
-	_update_rank_bar()
+func _on_ego_progress_changed(_value: int) -> void:
+	_update_ego_bar()
 
 
 func _update_name_label() -> void:
 	_name_label.text = GameState.player_name if not GameState.player_name.is_empty() else tr("ui_game_title")
 
 
-func _update_rank_bar() -> void:
-	_rank_bar.max_value = rank_points_per_level
-	_rank_bar.value = GameState.rank_points
+func _update_ego_bar() -> void:
+	_ego_bar.max_value = ego_points_per_level
+	_ego_bar.value = GameState.ego_points
 
 
 func _on_settings_pressed() -> void:

@@ -43,7 +43,7 @@ Dois botões grandes lado a lado: História (mostra progresso, ex. "alvo 3 de 12
 Um botão médio por baixo: O Quarto. Ponto vermelho quando há novidade.
 Ícone de engrenagem pequeno no canto.
 Hierarquia deliberada: quatro entradas com pesos diferentes, não quatro botões iguais.
-NOTA DE ESQUELETO: "História" e "Arcade" apontam ambos, por agora, diretamente para `scenes/duel.tscn` — não existe ainda mapa de progressão (ponto 40) nem comportamento real de arcade (ponto 18). O toque no avatar (caretas/gritos/poses) e o ponto vermelho de novidade em "O Quarto" ainda não existem; o avatar é uma forma de cor lisa (placeholder), não a camada de avatar real. A barra de aura sob o nome usa `GameState.rank_points`/`rank` como aproximação provisória — não é ainda a curva de rank definitiva.
+NOTA DE ESQUELETO: "História" e "Arcade" apontam ambos, por agora, diretamente para `scenes/duel.tscn` — não existe ainda mapa de progressão (ponto 40) nem comportamento real de arcade (ponto 18). O toque no avatar (caretas/gritos/poses) e o ponto vermelho de novidade em "O Quarto" ainda não existem; o avatar é uma forma de cor lisa (placeholder), não a camada de avatar real. A barra de aura sob o nome usa `GameState.ego_points`/`ego` como aproximação provisória — não é ainda a curva de ego definitiva.
 
 **7. O QUARTO (vestir, loja e troféus fundidos)**
 **Implementado (esqueleto)** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
@@ -382,27 +382,29 @@ Quando um prompt pede para REMOVER um mecanismo, tem de dizer explicitamente o q
 Refactors de sistemas que já funcionam são a principal fonte de regressões neste projeto. Preferir sempre acrescentar componentes novos que escutam sinais existentes, em vez de reestruturar código validado.
 Corolário aprendido com o get ready: features que dependem de ecrãs ainda inexistentes (casa, onboarding) não devem ser enxertadas no duelo. Construir na ordem certa evita malabarismo.
 
-**62. MODELO DE PROGRESSÃO — AURA E RANK**
+**62. MODELO DE PROGRESSÃO — AURA E EGO**
 **Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
 Duas moedas de progresso, com propósitos distintos:
 - **AURA** — o progresso da história. Contínuo de 0 até 1.000.000. NUNCA zera entre duelos. Cada adversário é um posto de controlo: derrotado o chefe dos 30.000, o duelo seguinte começa nos 30.000 e vai até aos 60.000, e assim por diante. Chegar ao milhão é o fim da história: o jogador torna-se o Auramax 67.
-- **RANK** — o nível permanente do jogador, o número que se mostra aos amigos ("sou rank 32"). Sobe com um valor fixo por chefe derrotado, mais o bónus do tempo que sobrou.
-Nomenclatura na interface: no duelo a barra chama-se AURA; no ecrã de casa o permanente chama-se RANK. Palavra curta e universal para 9-13 anos.
-DECISÃO ANTI-BATOTA: a aura farmada não converte em rank. Clicar muito depressa não dá progresso permanente direto — dá uma vitória mais rápida, e é a rapidez que paga, via bónus de tempo. O incentivo continua, apontado ao sítio certo.
+- **EGO** — o nível permanente do jogador, o número que se mostra aos amigos ("sou ego 32"). Sobe com um valor fixo por chefe derrotado, mais o bónus do tempo que sobrou.
+Nomenclatura na interface: no duelo a barra chama-se AURA; no ecrã de casa o permanente chama-se EGO. Palavra curta e universal para 9-13 anos.
+DECISÃO ANTI-BATOTA: a aura farmada não converte em ego. Clicar muito depressa não dá progresso permanente direto — dá uma vitória mais rápida, e é a rapidez que paga, via bónus de tempo. O incentivo continua, apontado ao sítio certo.
 
-**63. A DIFICULDADE VIVE NOS INTERVALOS**
-**Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento. `base_aura` recalculado a partir da duração pretendida do duelo; os três primeiros intervalos entre adversários mantidos iguais (30.000 cada).
-O que define a dificuldade não é o número do adversário, é o SALTO entre adversários consecutivos. De 0 a 30.000 é um salto de 30.000; de 30.000 a 60.000 é outro igual; se o terceiro for 120.000, o salto duplica.
-A curva afina-se nos intervalos, nunca nos totais.
-PROBLEMA IDENTIFICADO A JOGAR: com alvo de 100 e ~1-3 de aura por clique, o primeiro adversário cai em segundos e o burst nem chega a encher — perde a função. O alvo tem de ser derivado da DURAÇÃO PRETENDIDA do duelo (quanta aura um jogador médio produz nesse tempo) e ficar ligeiramente acima, obrigando ao uso do burst.
-O primeiro adversário deve ser fácil para ensinar o loop, mas nunca trivial ao ponto de o jogador vencer sem descobrir que o burst existe.
+**63. ESTRUTURA POR CENÁRIO — ROUNDS E CHEFE FINAL**
+Cada cenário (ponto 40) não é um único duelo contra um chefe — é UMA sequência contínua de 10 rounds dentro do mesmo cenário, com o mesmo duelo a decorrer sem interrupção de jogabilidade.
+Aura contínua por cenário: 10 limiares (10.000, 20.000, 30.000 ... até 100.000). Os limiares NÃO são adversários individuais com cara e nome — são marcos de progresso dentro do mesmo confronto.
+Nos rounds 1 a 9: ao atingir o limiar, ecrã de resultado normal (ponto 64) com taunt do locutor ou do próprio chefe (visível ao fundo desde o início, comentando). Tempo e o par moedas/ego são atribuídos em CADA round, não só no final — o tempo tem função de progressão constante, não só de clímax. O duelo continua imediatamente a seguir, sem voltar à casa.
+No round 10 (100.000): é o CHEFE de verdade. Cerimónia especial — cosmético do chefe, chuva de papel picado, arte do chefe derrotado ao fundo, o jogador em primeiro plano com um troféu.
+Razão de produção: com muitos cenários (dezenas a caminho da Lua e além), dar um cosmético por adversário individual não escala. Com chefe de cenário, o custo de arte fica fixo — um cosmético por cenário, não um por round — mesmo que existam centenas de rounds no total do jogo.
+O tempo REINICIA a cada round (Super Mario World, ponto 17, aplicado por round e não ao cenário inteiro).
+A dificuldade continua a viver nos INTERVALOS entre limiares consecutivos, agora dentro do mesmo cenário em vez de entre adversários.
 
 **64. ECRÃ DE RESULTADO DO DUELO**
 **Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
 Sequência ao ultrapassar o número do adversário:
 1. O cartão do adversário parte-se e liberta o cosmético (ponto 20)
 2. O tempo para
-3. Ecrã ou popup de resultado, mostrando por ordem: aura total atingida; tempo restante convertido em bónus de rank; rank ganho pela vitória; barra de rank a encher e a subir de nível se atingir; moedas ganhas; cerimónia do troféu, com o cosmético a passar para o jogador (ponto 39); mensagem do locutor conforme o desempenho
+3. Ecrã ou popup de resultado, mostrando por ordem: aura total atingida; tempo restante convertido em bónus de ego; ego ganho pela vitória; barra de ego a encher e a subir de nível se atingir; moedas ganhas; cerimónia do troféu, com o cosmético a passar para o jogador (ponto 39); mensagem do locutor conforme o desempenho
 4. Botão para continuar → mapa ou casa
 O ecrã de resultado é onde todo o esforço se converte em recompensa visível. É ele que fecha o loop.
 
@@ -474,18 +476,23 @@ Esta secção existe para que qualquer agente (ou o próprio autor) possa retoma
 - Sinais novos: `burst_meter_changed`, `burst_started`, `burst_ended`.
 - Contador de streak com zoom in-out a cada marco.
 
-**Adversário, tempo, vitória e ecrã de resultado** (pontos 16, 17, 62, 63, 64, 65)
-- `scripts/opponent.gd` (`Opponent`, `Resource`) — `id`, `display_name` (chave de tradução), `aura_threshold`, `rank_reward`, `coin_reward`, `cosmetic_id`, `scene_id`, `duel_duration`. Três instâncias em `assets/data/opponents/` (30.000 / 60.000 / 90.000 — os três primeiros intervalos iguais, por decisão do ponto 63).
-- `duel.gd` ganhou `story_opponents: Array[Opponent]` (data-driven, editável no inspetor) e `current_opponent`, escolhido em `_setup_story_opponent()` por `GameState.defeated_opponents.size()` — sem enum de estado, só um índice.
-- **`base_aura` recalculado** de 1.0 para 38.0, a partir da duração pretendida do duelo (~75 s) e de um teto "sem burst, jogador sustido" — ver o comentário com a conta completa junto ao `@export` em `duel.gd`. Garante que o primeiro adversário exige burst, sem o tornar impossível sem ele.
-- **Aura contínua** (ponto 62): `GameState.current_aura` e `GameState.defeated_opponents` (novos campos persistidos). Cada duelo arranca no posto de controlo anterior (`_setup_story_opponent()` lê `GameState.current_aura`) e só avança quando `ResultScreen` comita a vitória — nunca durante o farming.
-- **`scripts/countdown_timer.gd`** (`CountdownTimer`, extends `Label`) — só modo história, contador pequeno no canto superior direito. `default_duel_duration` (90 s) expõe o fallback; a duração normal vem de `Opponent.duel_duration`. Sinais `time_updated(seconds_left)` / `time_expired()`.
-- **`scripts/opponent_card.gd`** (`OpponentCard`) — cartão pequeno no canto superior direito (retrato placeholder, nome, limiar). Duck-typed ao `duel_won` do duelo, como o `announcer.gd`; parte-se e liberta o cosmético ao vencer.
-- **`scripts/result_screen.gd`** (`ResultScreen`) e **`scripts/game_over_screen.gd`** (`GameOverScreen`) — popups full-screen, duck-typed a `duel_won` / `duel_lost`. `duel.gd` emite os dois sinais, guardados por `_victory_triggered`, sem tocar na lógica de tap/streak/burst.
-  - `ResultScreen` é o único sítio que converte vitória em progresso permanente (decisão anti-batota do ponto 62): comita `GameState` (aura, adversário derrotado, moedas, cosmético, rank) assim que `duel_won` dispara, e só DEPOIS anima a revelação em sequência (aura total, bónus de tempo → rank via `time_to_rank_ratio`, rank de vitória, barra de rank a encher com level-up, moedas, cerimónia do troféu, fala do locutor por desempenho). Fechar a app a meio da animação não perde nada.
-  - `GameOverScreen` oferece as três saídas do ponto 65: vídeo (placeholder) e moedas retomam o MESMO duelo via `duel.resume_duel()`; aceitar derrota recarrega a cena, que volta ao último posto de controlo — sem escrita extra, porque `GameState.current_aura` nunca avançou durante o duelo em curso.
-- **`GameState`**: `aura_level` renomeado para `rank`/`rank_points` (nomenclatura do ponto 62), mais `current_aura` e `defeated_opponents`, todos persistidos em `save.cfg`.
-- Novas chaves de tradução em `announcer_lines.csv` (nomes dos adversários, HUD do duelo, ecrã de resultado, game over, falas de vitória do locutor) nas seis línguas suportadas.
+**Adversário, tempo, vitória e ecrã de resultado** (pontos 16, 17, 62, 64, 65 — modelo histórico, ver bloco seguinte para o estado atual)
+- `scripts/opponent.gd` (`Opponent`, `Resource`) — `id`, `display_name` (chave de tradução), `aura_threshold`, `ego_reward` (renomeado de `rank_reward`), `coin_reward`, `cosmetic_id`, `scene_id`, `duel_duration`. Três instâncias em `assets/data/opponents/` (30.000 / 60.000 / 90.000 — os três primeiros intervalos iguais).
+- **`base_aura` recalculado** de 1.0 para 38.0, a partir da duração pretendida do duelo (~75 s) e de um teto "sem burst, jogador sustido" — ver o comentário com a conta completa junto ao `@export` em `duel.gd`. Garante que o primeiro round exige burst, sem o tornar impossível sem ele. Este cálculo continua válido: o primeiro limiar do primeiro cenário manteve-se em 30.000 (ver bloco seguinte).
+- **`scripts/countdown_timer.gd`** (`CountdownTimer`, extends `Label`) — só modo história, contador pequeno no canto superior direito. `default_duel_duration` (90 s) expõe o fallback. Sinais `time_updated(seconds_left)` / `time_expired()`. Continua em uso, inalterado.
+- UNUSED desde a reestruturação em cenários (ver bloco seguinte): `scripts/opponent.gd` e as suas três instâncias `.tres` mantêm-se no repositório, sem ser referenciados por código novo.
+
+**Reestruturação em cenários de 10 rounds com chefe final** (ponto 63 — substitui o modelo de 3 adversários acima)
+- `scripts/scenario.gd` (`Scenario`, `Resource`) — `id`, `display_name`, `scene_id`, `boss_name`, `boss_cosmetic_id`, `round_thresholds: Array[float]` (10 entradas), `round_taunts: Array[String]` (9 entradas, rounds 1-9), `ego_per_round`, `coin_per_round`, `round_duration`. Uma instância em `assets/data/scenarios/scenario_01.tres`, com os limiares 30.000/60.000/90.000 dos três adversários antigos como os primeiros 3 dos 10 (depois 120.000 até 300.000, mesmo passo de 30.000).
+- `duel.gd` trocou `story_opponents`/`current_opponent` por `story_scenarios: Array[Scenario]` e `current_scenario` + `current_round_index` (0-9), escolhidos em `_setup_story_round()` por `GameState.completed_scenarios.size()` + `GameState.current_round_index` — sem enum de estado, só dois índices. `_check_victory()` decide entre `round_won(final_aura, round_index)` (rounds 1-9) e `duel_won(final_aura)` (round 10, o chefe).
+- **Tap/streak/aura/intensity/burst não foram tocados** nesta reestruturação — só a bookkeeping de progressão da história por cima.
+- **Aura contínua** (ponto 62): `GameState.current_aura`, `GameState.current_round_index` e `GameState.completed_scenarios` (novos campos persistidos, substituindo `defeated_opponents` para o novo modelo — esse campo antigo fica por usar, ver acima). Cada round arranca no posto de controlo anterior e só avança quando `ResultScreen`/`BossDefeatScreen` comitam a vitória — nunca durante o farming.
+- **`scripts/boss_card.gd`** (`BossCard`, substitui `opponent_card.gd`/`OpponentCard`) — mesmo cartão no canto superior direito, agora a mostrar o CHEFE do cenário (nome, limiar final) desde o round 1, não um adversário por duelo. Duck-typed a `duel_won` (só o chefe o faz partir-se), nunca a `round_won`.
+- **`scripts/result_screen.gd`** (`ResultScreen`) — agora reage a `round_won` (rounds 1-9), não a `duel_won`. Comita `GameState` (aura, `current_round_index + 1`, moedas, ego) assim que `round_won` dispara, anima a revelação (aura, bónus de tempo → ego, ego, barra de ego, moedas), e termina com a fala de provocação do round (`Scenario.round_taunts[round_index]`, via `Announcer.say_line()` — novo método, não passa pelas pools de `announce()`) em vez da linha genérica de vitória do locutor. O botão "Continuar" já NÃO recarrega a cena: chama `duel.advance_round()`, que reaproveita a bookkeeping já comitada e volta a armar o próximo limiar — o duelo continua sem interrupção (ponto 63).
+- **`scripts/boss_defeat_screen.gd`** (`BossDefeatScreen`, novo) — reage a `duel_won` (só o round 10). Mesmo padrão de comita-antes-de-animar do `ResultScreen`, mas com cerimónia própria: confetti dourado (partículas próprias, não as do burst), cosmético do chefe, "%s derrotado!" e troféu. "Continuar" recarrega a cena — ainda o substituto provisório para mapa/casa (ponto 64, passo 4) — e é essa recarga que reativa o loop-back de teste em `_setup_story_round()` quando `story_scenarios` se esgota (ver ponto 67).
+- **`scripts/game_over_screen.gd`** (`GameOverScreen`) — inalterado. "Aceitar derrota" continua a recarregar a cena; como cada round agora tem o seu próprio checkpoint (`GameState.current_aura` avança a cada round, não só no chefe), isto já significa "voltar ao início do round atual", não do cenário inteiro — sem precisar de código novo.
+- **`GameState`**: `rank`/`rank_points` renomeados para `ego`/`ego_points` (`add_rank` → `add_ego`), mais `current_round_index` e `completed_scenarios` (novos, persistidos). `defeated_opponents`/`add_defeated_opponent` ficam por usar, ao lado de `Opponent`.
+- Novas chaves de tradução em `announcer_lines.csv`: nome do cenário, provocações dos 9 rounds, "%s derrotado!", e `result_victory_rank_label`/`result_rank_level_label` renomeadas para `result_victory_ego_label`/`result_ego_level_label` — nas seis línguas suportadas.
 
 **Ecrãs de Casa, Quarto e Definições (esqueleto, pontos 6 e 7)**
 - `scenes/home.tscn` / `scripts/home.gd` — agora a **cena principal do projeto** (substituiu `duel.tscn` em `project.godot`). Nome do jogador (ou título do jogo, se vazio) sobre uma barra de rank fina, avatar placeholder (`ColorRect`), botões História/Arcade lado a lado e O Quarto por baixo, ícone de definições no canto. `home.gd` não tem `class_name`, pela mesma razão documentada em `duel.gd`: é o script raiz da cena principal, analisado antes de o cache global de classes estar garantidamente completo.
@@ -497,13 +504,14 @@ Esta secção existe para que qualquer agente (ou o próprio autor) possa retoma
 
 ## Verificado
 
-Fundação (tap/streak/aura/burst) confirmada em headless na sessão anterior — ver git log. **Este bloco (adversário/tempo/vitória/resultado) ainda não foi executado em headless**, por pedido explícito do autor; fica para teste manual no editor.
+Fundação (tap/streak/aura/burst) confirmada em headless na sessão anterior — ver git log. **Nem o bloco adversário/resultado original nem a reestruturação em cenários/rounds/chefe foram executados em headless**, por pedido explícito do autor; fica para teste manual no editor.
 
 ## Problemas conhecidos
 
 - **Ecrã de preparação e demonstração dos lados** (pontos 54 e 55) foram tentados e revertidos: dependem de ecrãs que ainda não existem (casa, onboarding), e o enxerto no duelo congelou a cena. Adiados para a fase dos ecrãs.
 - **O gesto SIX SEVEN não é testável no computador** — exige telemóvel físico, via exportação Android ou remote deploy.
-- **Ainda sem mapa**: o botão "Continuar" do ecrã de resultado e o "Aceitar derrota" do game over continuam a recarregar a própria cena do duelo (`reload_current_scene`), em vez de navegar para a Casa ou um mapa — provisório até existir o mapa de progressão (ponto 40). A Casa já existe (ponto 6, esqueleto), mas `duel.gd` e os seus componentes não foram alterados neste trabalho para não lhe mexer.
+- **Ainda sem mapa**: o "Continuar" do `BossDefeatScreen` (round 10) e o "Aceitar derrota" do game over continuam a recarregar a própria cena do duelo (`reload_current_scene`), em vez de navegar para a Casa ou um mapa — provisório até existir o mapa de progressão (ponto 40). `ResultScreen` (rounds 1-9) já não recarrega: chama `duel.advance_round()` e continua o mesmo duelo.
+- **`scene_id` do `Scenario` ainda não alimenta nada visual** — reutiliza `"street"` do antigo `opponent_01`; sem mapa (ponto 40) não há onde mostrar o local.
 
 ## Próximos passos, por ordem
 
@@ -512,7 +520,7 @@ Fundação (tap/streak/aura/burst) confirmada em headless na sessão anterior �
 3. **Mapa de progressão e onboarding/criação de personagem** (pontos 5, 40) — Casa, O Quarto e Definições já existem em esqueleto (pontos 6, 7).
 4. **Get ready e demonstração dos lados** (pontos 54, 55), agora que há de onde vir.
 5. **AchievementManager** (ponto 53).
-6. **Ligar o fim do duelo à Casa** (em vez de `reload_current_scene`), quando o mapa existir.
+6. **Ligar o fim do cenário (`BossDefeatScreen`) e o game over à Casa** (em vez de `reload_current_scene`), quando o mapa existir.
 
 ## Modo de trabalho preferido pelo autor
 
