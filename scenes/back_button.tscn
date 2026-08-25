@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/back_button.gd" id="1"]
+
+[node name="BackHomeButton" type="Button"]
+anchor_left = 0.03
+anchor_right = 0.22
+anchor_top = 0.02
+anchor_bottom = 0.06
+text = ""
+script = ExtResource("1")

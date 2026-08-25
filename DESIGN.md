@@ -36,18 +36,22 @@ Splash da produtora → (primeira vez: criação de personagem) → Casa → Due
 Escolha de rapaz ou rapariga, alguns acessórios gratuitos, escolha de bandeira, idioma, e o nome. Máximo 30 segundos e três ecrãs — se for longo, o miúdo fecha antes de jogar. Sem contador de moedas (é um jogador novo, não tem saldo).
 
 **6. ECRÃ DE CASA**
+**Implementado (esqueleto)** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
 Nome do jogador no lugar nobre do topo, assente numa barra fina de nível de aura — identidade e progresso juntos. O nome do jogo só aparece se o jogador não definir nenhum.
 Avatar grande ao centro, vestido com o que possui. Tocar nele faz-lhe caretas, gritos e poses — é brinquedo, não atalho. Os cosméticos comprados aparecem nessas reações.
 Dois botões grandes lado a lado: História (mostra progresso, ex. "alvo 3 de 12") e Arcade.
 Um botão médio por baixo: O Quarto. Ponto vermelho quando há novidade.
 Ícone de engrenagem pequeno no canto.
 Hierarquia deliberada: quatro entradas com pesos diferentes, não quatro botões iguais.
+NOTA DE ESQUELETO: "História" e "Arcade" apontam ambos, por agora, diretamente para `scenes/duel.tscn` — não existe ainda mapa de progressão (ponto 40) nem comportamento real de arcade (ponto 18). O toque no avatar (caretas/gritos/poses) e o ponto vermelho de novidade em "O Quarto" ainda não existem; o avatar é uma forma de cor lisa (placeholder), não a camada de avatar real. A barra de aura sob o nome usa `GameState.rank_points`/`rank` como aproximação provisória — não é ainda a curva de rank definitiva.
 
 **7. O QUARTO (vestir, loja e troféus fundidos)**
+**Implementado (esqueleto)** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
 Três abas: Vestir, Loja, Troféus. Comprar e vestir no mesmo sítio — obrigar a mudar de ecrã para equipar é irritante.
 Vista dos itens alternável entre tira lateral e grelha, à escolha do jogador.
 Botão "Pronto" recolhe os menus e mostra só o avatar no cenário — é o momento de orgulho.
 O cenário do quarto é personalizável e vendável (barato de produzir, boa margem).
+NOTA DE ESQUELETO: as três abas apenas trocam a visibilidade de três painéis placeholder ("Em breve") — sem inventário, loja ou troféus reais ainda. "Pronto" limita-se, por agora, a voltar à Casa, tal como o botão de retrocesso separado; o comportamento real de recolher os menus e revelar só o avatar fica para quando a camada de avatar existir. Sem alternância tira lateral/grelha ainda.
 
 ---
 
@@ -483,6 +487,14 @@ Esta secção existe para que qualquer agente (ou o próprio autor) possa retoma
 - **`GameState`**: `aura_level` renomeado para `rank`/`rank_points` (nomenclatura do ponto 62), mais `current_aura` e `defeated_opponents`, todos persistidos em `save.cfg`.
 - Novas chaves de tradução em `announcer_lines.csv` (nomes dos adversários, HUD do duelo, ecrã de resultado, game over, falas de vitória do locutor) nas seis línguas suportadas.
 
+**Ecrãs de Casa, Quarto e Definições (esqueleto, pontos 6 e 7)**
+- `scenes/home.tscn` / `scripts/home.gd` — agora a **cena principal do projeto** (substituiu `duel.tscn` em `project.godot`). Nome do jogador (ou título do jogo, se vazio) sobre uma barra de rank fina, avatar placeholder (`ColorRect`), botões História/Arcade lado a lado e O Quarto por baixo, ícone de definições no canto. `home.gd` não tem `class_name`, pela mesma razão documentada em `duel.gd`: é o script raiz da cena principal, analisado antes de o cache global de classes estar garantidamente completo.
+- História e Arcade apontam ambos para `scenes/duel.tscn` — placeholder deliberado até existirem o mapa de progressão (ponto 40) e o comportamento real de arcade (ponto 18).
+- `scenes/the_room.tscn` / `scripts/the_room.gd` — três abas (Vestir/Loja/Troféus) que só trocam a visibilidade de três painéis placeholder ("Em breve"). "Pronto" e o botão de retrocesso fazem ambos o mesmo, por agora: voltam à Casa.
+- `scenes/settings.tscn` / `scripts/settings.gd` — **funcionalmente ligado**, não fingido: sliders de volume (Music/Announcer/SFX) e o interruptor de hápticos ligam-se em direto a `SettingsManager`; o seletor de idioma lista `LocaleManager.SUPPORTED_LOCALES` e chama `LocaleManager.set_locale()`; o campo de nome chama `GameState.set_player_name()` (ponto 51). Bandeira e género do avatar são entradas visíveis mas desativadas (`disabled = true`), rotuladas "Em breve" — esses sistemas ainda não existem.
+- `scenes/back_button.tscn` / `scripts/back_button.gd` (`BackHomeButton`) — botão partilhado de retrocesso, instanciado em O Quarto e Definições, para não duplicar a chamada `change_scene_to_file` três vezes.
+- **`scripts/duel.gd` e todos os seus componentes de suporte não foram tocados** neste trabalho — só ganharam um novo ponto de entrada (Casa → duelo).
+
 ## Verificado
 
 Fundação (tap/streak/aura/burst) confirmada em headless na sessão anterior — ver git log. **Este bloco (adversário/tempo/vitória/resultado) ainda não foi executado em headless**, por pedido explícito do autor; fica para teste manual no editor.
@@ -491,15 +503,16 @@ Fundação (tap/streak/aura/burst) confirmada em headless na sessão anterior �
 
 - **Ecrã de preparação e demonstração dos lados** (pontos 54 e 55) foram tentados e revertidos: dependem de ecrãs que ainda não existem (casa, onboarding), e o enxerto no duelo congelou a cena. Adiados para a fase dos ecrãs.
 - **O gesto SIX SEVEN não é testável no computador** — exige telemóvel físico, via exportação Android ou remote deploy.
-- **Sem ecrã de casa/mapa ainda**: o botão "Continuar" do ecrã de resultado e o "Aceitar derrota" do game over recarregam a própria cena do duelo (`reload_current_scene`), em vez de navegar para um mapa — provisório até existir esse ecrã (ponto 40).
+- **Ainda sem mapa**: o botão "Continuar" do ecrã de resultado e o "Aceitar derrota" do game over continuam a recarregar a própria cena do duelo (`reload_current_scene`), em vez de navegar para a Casa ou um mapa — provisório até existir o mapa de progressão (ponto 40). A Casa já existe (ponto 6, esqueleto), mas `duel.gd` e os seus componentes não foram alterados neste trabalho para não lhe mexer.
 
 ## Próximos passos, por ordem
 
 1. **Gesto SIX SEVEN** (ponto 11). Requer telemóvel físico para testar.
-2. **Avatar em camadas** (pontos 21, 23, 29). Placeholders geométricos primeiro.
-3. **Ecrã de casa, mapa, O Quarto, opções, onboarding** (pontos 5, 6, 7, 40).
+2. **Avatar em camadas** (pontos 21, 23, 29). Placeholders geométricos primeiro — Casa e O Quarto já têm onde os encaixar.
+3. **Mapa de progressão e onboarding/criação de personagem** (pontos 5, 40) — Casa, O Quarto e Definições já existem em esqueleto (pontos 6, 7).
 4. **Get ready e demonstração dos lados** (pontos 54, 55), agora que há de onde vir.
 5. **AchievementManager** (ponto 53).
+6. **Ligar o fim do duelo à Casa** (em vez de `reload_current_scene`), quando o mapa existir.
 
 ## Modo de trabalho preferido pelo autor
 

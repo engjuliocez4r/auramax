@@ -43,3 +43,16 @@ game_over_title,Time's Up,Tempo Esgotado,Se Acabó el Tiempo,Temps Écoulé,Zeit
 game_over_watch_ad_button,Watch Video (+Time),Ver Vídeo (+Tempo),Ver Vídeo (+Tiempo),Voir la Vidéo (+Temps),Video Ansehen (+Zeit),Guarda Video (+Tempo)
 game_over_spend_coins_button,Spend %d Coins (+Time),Gastar %d Moedas (+Tempo),Gastar %d Monedas (+Tiempo),Dépenser %d Pièces (+Temps),%d Münzen Ausgeben (+Zeit),Spendi %d Monete (+Tempo)
 game_over_accept_defeat_button,Accept Defeat,Aceitar Derrota,Aceptar Derrota,Accepter la Défaite,Niederlage Akzeptieren,Accetta la Sconfitta
+ui_game_title,Auramax 67,Auramax 67,Auramax 67,Auramax 67,Auramax 67,Auramax 67
+ui_settings_icon,⚙,⚙,⚙,⚙,⚙,⚙
+ui_coming_soon,Coming soon,Em breve,Próximamente,Bientôt disponible,Demnächst,Prossimamente
+ui_flag_label,Flag,Bandeira,Bandera,Drapeau,Flagge,Bandiera
+ui_avatar_gender_label,Avatar Gender,Género do Avatar,Género del Avatar,Genre de l'Avatar,Avatar-Geschlecht,Genere Avatar
+nav_back_button,Back,Voltar,Volver,Retour,Zurück,Indietro
+home_story_button,Story,História,Historia,Histoire,Geschichte,Storia
+home_arcade_button,Arcade,Arcade,Arcade,Arcade,Arcade,Arcade
+home_the_room_button,The Room,O Quarto,La Habitación,La Chambre,Das Zimmer,La Stanza
+room_tab_dress,Dress,Vestir,Vestir,Habiller,Anziehen,Vestire
+room_tab_shop,Shop,Loja,Tienda,Boutique,Shop,Negozio
+room_tab_trophies,Trophies,Troféus,Trofeos,Trophées,Trophäen,Trofei
+room_ready_button,Ready,Pronto,Listo,Prêt,Bereit,Pronto

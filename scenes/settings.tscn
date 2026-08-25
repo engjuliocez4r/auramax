@@ -1,0 +1,168 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/settings.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/back_button.tscn" id="2"]
+
+[node name="Settings" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="BackButton" parent="." instance=ExtResource("2")]
+
+[node name="TitleLabel" type="Label" parent="."]
+anchor_left = 0.05
+anchor_right = 0.95
+anchor_top = 0.08
+anchor_bottom = 0.13
+mouse_filter = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+
+[node name="MusicRow" type="Control" parent="."]
+anchor_left = 0.05
+anchor_right = 0.95
+anchor_top = 0.16
+anchor_bottom = 0.2
+
+[node name="Label" type="Label" parent="MusicRow"]
+anchor_right = 0.48
+anchor_bottom = 1.0
+mouse_filter = 2
+vertical_alignment = 1
+text = ""
+
+[node name="Slider" type="HSlider" parent="MusicRow"]
+anchor_left = 0.52
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="AnnouncerRow" type="Control" parent="."]
+anchor_left = 0.05
+anchor_right = 0.95
+anchor_top = 0.22
+anchor_bottom = 0.26
+
+[node name="Label" type="Label" parent="AnnouncerRow"]
+anchor_right = 0.48
+anchor_bottom = 1.0
+mouse_filter = 2
+vertical_alignment = 1
+text = ""
+
+[node name="Slider" type="HSlider" parent="AnnouncerRow"]
+anchor_left = 0.52
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="SfxRow" type="Control" parent="."]
+anchor_left = 0.05
+anchor_right = 0.95
+anchor_top = 0.28
+anchor_bottom = 0.32
+
+[node name="Label" type="Label" parent="SfxRow"]
+anchor_right = 0.48
+anchor_bottom = 1.0
+mouse_filter = 2
+vertical_alignment = 1
+text = ""
+
+[node name="Slider" type="HSlider" parent="SfxRow"]
+anchor_left = 0.52
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="HapticsRow" type="Control" parent="."]
+anchor_left = 0.05
+anchor_right = 0.95
+anchor_top = 0.35
+anchor_bottom = 0.39
+
+[node name="Label" type="Label" parent="HapticsRow"]
+anchor_right = 0.48
+anchor_bottom = 1.0
+mouse_filter = 2
+vertical_alignment = 1
+text = ""
+
+[node name="Toggle" type="CheckButton" parent="HapticsRow"]
+anchor_left = 0.52
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = ""
+
+[node name="LanguageRow" type="Control" parent="."]
+anchor_left = 0.05
+anchor_right = 0.95
+anchor_top = 0.42
+anchor_bottom = 0.46
+
+[node name="Label" type="Label" parent="LanguageRow"]
+anchor_right = 0.48
+anchor_bottom = 1.0
+mouse_filter = 2
+vertical_alignment = 1
+text = ""
+
+[node name="OptionButton" type="OptionButton" parent="LanguageRow"]
+anchor_left = 0.52
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="NameRow" type="Control" parent="."]
+anchor_left = 0.05
+anchor_right = 0.95
+anchor_top = 0.49
+anchor_bottom = 0.53
+
+[node name="Label" type="Label" parent="NameRow"]
+anchor_right = 0.48
+anchor_bottom = 1.0
+mouse_filter = 2
+vertical_alignment = 1
+text = ""
+
+[node name="LineEdit" type="LineEdit" parent="NameRow"]
+anchor_left = 0.52
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="FlagRow" type="Control" parent="."]
+anchor_left = 0.05
+anchor_right = 0.95
+anchor_top = 0.56
+anchor_bottom = 0.6
+
+[node name="Label" type="Label" parent="FlagRow"]
+anchor_right = 0.48
+anchor_bottom = 1.0
+mouse_filter = 2
+vertical_alignment = 1
+text = ""
+
+[node name="Placeholder" type="Button" parent="FlagRow"]
+anchor_left = 0.52
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = ""
+
+[node name="AvatarGenderRow" type="Control" parent="."]
+anchor_left = 0.05
+anchor_right = 0.95
+anchor_top = 0.63
+anchor_bottom = 0.67
+
+[node name="Label" type="Label" parent="AvatarGenderRow"]
+anchor_right = 0.48
+anchor_bottom = 1.0
+mouse_filter = 2
+vertical_alignment = 1
+text = ""
+
+[node name="Placeholder" type="Button" parent="AvatarGenderRow"]
+anchor_left = 0.52
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = ""
