@@ -266,7 +266,17 @@ func _center_aura_core() -> void:
 func _setup_story_opponent() -> void:
 	var defeated_count := GameState.defeated_opponents.size()
 	if defeated_count >= story_opponents.size():
-		return # All story opponents cleared for now — no opponent, no timer, no threshold.
+		# TEMPORARY TESTING CONVENIENCE — NOT FINAL BEHAVIOUR (see DESIGN.md
+		# point 67). Only 3 story opponents exist right now, so testers hit
+		# this branch quickly. Loop back to the first opponent instead of
+		# leaving the player with no duel, so the loop can be replayed
+		# without manually clearing the save file. Remove this once enough
+		# real opponents/locations (design point 40) exist that reaching the
+		# end stops being something testers do by accident — replace it with
+		# real end-of-current-content handling then.
+		GameState.defeated_opponents = []
+		GameState.current_aura = 0.0
+		defeated_count = 0
 	current_opponent = story_opponents[defeated_count]
 
 	# Continuous story aura (point 62): this duel starts at the previous

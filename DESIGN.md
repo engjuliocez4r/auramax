@@ -414,6 +414,10 @@ Ganham-se ao vencer cada chefe e servem para comprar cosméticos na loja, ou par
 Existirão pacotes de moedas comprados com dinheiro real, disponíveis APENAS na loja, em momento neutro (ponto 19).
 AVISO A RESOLVER ANTES DA SUBMISSÃO (liga ao ponto 32): compras integradas com público de 9-13 anos colocam a app na categoria infantil da Play Store, com regras próprias sobre apresentação e pressão de compra. Não construir o sistema assumindo que passa sem escrutínio.
 
+**67. PENDENTE: PROGRESSÃO PERSISTENTE AO LONGO DE UM PLAYTHROUGH COMPLETO**
+Por decidir quando existirem mais adversários/locais (ponto 40): o que acontece quando o jogador chega ao fim do conteúdo atual? Precisa de design real — ecrã de fim de capítulo, loop para conteúdo em construção, mensagem de "voltar em breve", etc. Não decidir agora, só quando o roster deixar de ser trivial de esgotar.
+NOTA: com apenas 3 adversários de história implementados, `duel.gd` faz atualmente um loop-back para o primeiro adversário (repõe `GameState.defeated_opponents` e `current_aura`) quando o roster se esgota, só para permitir testar o loop repetidamente sem apagar o save à mão. Isto é **provisório, só para teste**, e está comentado como tal no código — remover e substituir por tratamento real assim que existirem adversários suficientes para o loop deixar de ser necessário.
+
 ---
 ---
 
