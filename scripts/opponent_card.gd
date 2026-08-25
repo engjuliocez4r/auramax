@@ -1,21 +1,12 @@
 extends Control
-class_name BossCard
-## Small top-right card showing the scenario's BOSS (design points 20, 63):
-## presence, not protagonist. Visible for the whole scenario, from round 1,
-## since the boss watches (and eventually taunts) from the start — not just
-## appearing at round 10.
+class_name OpponentCard
+## Small top-right card: presence, not protagonist (design point 20).
 ##
-## Fully passive: duel.gd calls set_scenario() once per scenario, right
-## after picking it, and never touches this node again. The break-apart
+## Fully passive: duel.gd calls set_opponent() once, right after picking the
+## story opponent, and never touches this node again. The break-apart
 ## reaction is self-driven — this script duck-types onto the host's
 ## duel_won signal in _ready(), same pattern announcer.gd uses for its own
-## host. duel.gd reserves duel_won for the scenario's final (boss) round
-## specifically (see _check_victory()), so this card only breaks apart on
-## the real boss defeat, never on an intermediate round.
-##
-## Replaces the old opponent-per-duel OpponentCard: same component, same
-## break-apart/cosmetic-release choreography, repointed at a Scenario's
-## boss instead of a single Opponent.
+## host, so it stays decoupled from duel.gd's aura/streak/burst logic.
 
 @export var shake_amount: float = 6.0 # px of shake right before the card breaks.
 @export var shake_duration: float = 0.2
@@ -26,7 +17,7 @@ class_name BossCard
 @onready var _name_label: Label = $NameLabel
 @onready var _threshold_label: Label = $ThresholdLabel
 
-var _scenario: Scenario
+var _opponent: Opponent
 
 
 func _ready() -> void:
@@ -35,14 +26,13 @@ func _ready() -> void:
 		host.duel_won.connect(_on_duel_won)
 
 
-func set_scenario(scenario: Scenario) -> void:
-	_scenario = scenario
-	visible = scenario != null
-	if scenario == null:
+func set_opponent(opponent: Opponent) -> void:
+	_opponent = opponent
+	visible = opponent != null
+	if opponent == null:
 		return
-	_name_label.text = tr(scenario.boss_name)
-	var boss_threshold := scenario.round_thresholds[scenario.round_thresholds.size() - 1]
-	_threshold_label.text = tr("opponent_card_threshold_label") % int(boss_threshold)
+	_name_label.text = tr(opponent.display_name)
+	_threshold_label.text = tr("opponent_card_threshold_label") % int(opponent.aura_threshold)
 
 
 func _on_duel_won(_final_aura: float) -> void:
@@ -62,8 +52,8 @@ func _break_apart() -> void:
 
 
 func _release_cosmetic() -> void:
-	if _scenario == null:
+	if _opponent == null:
 		return
 	_portrait.visible = false
 	_name_label.text = tr("opponent_card_cosmetic_label")
-	_threshold_label.text = tr(_scenario.boss_name)
+	_threshold_label.text = tr(_opponent.display_name)

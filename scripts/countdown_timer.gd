@@ -13,7 +13,7 @@ class_name CountdownTimer
 signal time_updated(seconds_left: float)
 signal time_expired()
 
-@export var default_duel_duration: float = 90.0 # Fallback duration when start() is called with no explicit duration (e.g. no story scenario set).
+@export var default_duel_duration: float = 90.0 # Fallback duration when start() is called with no explicit duration (e.g. no story opponent set).
 
 var seconds_left: float = 0.0
 var _running: bool = false
@@ -24,9 +24,8 @@ func _ready() -> void:
 	visible = false
 
 
-## duration <= 0 falls back to default_duel_duration. Passing a scenario
-## round's own round_duration (design point 17) is the normal story-mode
-## call site.
+## duration <= 0 falls back to default_duel_duration. Passing an opponent's
+## own duel_duration (design point 17) is the normal story-mode call site.
 func start(duration: float = -1.0) -> void:
 	seconds_left = duration if duration > 0.0 else default_duel_duration
 	_running = true
