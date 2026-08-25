@@ -1,6 +1,11 @@
 extends Resource
 class_name Opponent
-## Data-driven story-mode opponent (design points 16, 63).
+## UNUSED since the scenario/round rework (design point 63) — kept around
+## rather than deleted in case anything still references it. Nothing new
+## should use this; see scripts/scenario.gd (Scenario) for the current
+## story-mode data model.
+##
+## Data-driven story-mode opponent (design points 16, 63, historical).
 ##
 ## A story opponent never plays live — it is a stationary target with a
 ## name, a face and a number (design point 16). Difficulty is tuned by the
@@ -10,7 +15,7 @@ class_name Opponent
 @export var id: String = "" # Stable key: used for GameState.defeated_opponents and cosmetic bookkeeping.
 @export var display_name: String = "" # Translation key, never literal text.
 @export var aura_threshold: float = 0.0 # Story aura (design point 62) this opponent falls at.
-@export var rank_reward: int = 0 # Flat rank granted on victory — never from farmed aura (point 62).
+@export var ego_reward: int = 0 # Flat ego granted on victory — never from farmed aura (point 62).
 @export var coin_reward: int = 0
 @export var cosmetic_id: String = "" # Transferred to the player on victory (points 16, 39).
 @export var scene_id: String = "" # Which story location this fight belongs to (point 40).

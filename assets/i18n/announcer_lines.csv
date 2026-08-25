@@ -33,9 +33,9 @@ duel_time_label,%ds,%ds,%ds,%ds,%ds,%ds
 opponent_card_threshold_label,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA
 opponent_card_cosmetic_label,Unlocked!,Desbloqueado!,¡Desbloqueado!,Débloqué !,Freigeschaltet!,Sbloccato!
 result_aura_label,Aura reached: %d,Aura atingida: %d,Aura alcanzada: %d,Aura atteinte : %d,Erreichte Aura: %d,Aura raggiunta: %d
-result_time_bonus_label,Time bonus: +%d rank,Bónus de tempo: +%d rank,Bono de tiempo: +%d rank,Bonus de temps : +%d rank,Zeitbonus: +%d Rang,Bonus tempo: +%d rank
-result_victory_rank_label,Victory rank: +%d,Rank de vitória: +%d,Rank de victoria: +%d,Rang de victoire : +%d,Sieg-Rang: +%d,Rank di vittoria: +%d
-result_rank_level_label,Rank %d,Rank %d,Rank %d,Rang %d,Rang %d,Rank %d
+result_time_bonus_label,Time bonus: +%d ego,Bónus de tempo: +%d ego,Bono de tiempo: +%d ego,Bonus de temps : +%d ego,Zeitbonus: +%d Ego,Bonus tempo: +%d ego
+result_victory_ego_label,Victory ego: +%d,Ego de vitória: +%d,Ego de victoria: +%d,Ego de victoire : +%d,Sieg-Ego: +%d,Ego di vittoria: +%d
+result_ego_level_label,Ego %d,Ego %d,Ego %d,Ego %d,Ego %d,Ego %d
 result_coins_label,Coins: +%d,Moedas: +%d,Monedas: +%d,Pièces : +%d,Münzen: +%d,Monete: +%d
 result_trophy_label,New cosmetic unlocked!,Novo cosmético desbloqueado!,¡Nuevo cosmético desbloqueado!,Nouveau cosmétique débloqué !,Neues Kosmetikitem freigeschaltet!,Nuovo cosmetico sbloccato!
 result_continue_button,Continue,Continuar,Continuar,Continuer,Weiter,Continua
@@ -56,3 +56,14 @@ room_tab_dress,Dress,Vestir,Vestir,Habiller,Anziehen,Vestire
 room_tab_shop,Shop,Loja,Tienda,Boutique,Shop,Negozio
 room_tab_trophies,Trophies,Troféus,Trofeos,Trophées,Trophäen,Trofei
 room_ready_button,Ready,Pronto,Listo,Prêt,Bereit,Pronto
+scenario_01_name,The Neighborhood,O Bairro,El Barrio,Le Quartier,Die Nachbarschaft,Il Quartiere
+boss_defeated_label,%s defeated!,%s derrotado!,¡%s derrotado!,%s vaincu !,%s besiegt!,%s sconfitto!
+scenario_01_round_taunt_1,Warming up?,Só isso?,¿Eso es todo?,C'est tout ?,Nur das?,Tutto qui?
+scenario_01_round_taunt_2,You'll need to do better than that.,Vais ter de fazer melhor.,Vas a necesitar algo mejor.,Il va falloir faire mieux.,Da geht noch mehr.,Dovrai fare di meglio.
+scenario_01_round_taunt_3,Not bad... for a beginner.,Nada mau... para um principiante.,Nada mal... para un principiante.,Pas mal... pour un débutant.,Nicht schlecht... für einen Anfänger.,Non male... per un principiante.
+scenario_01_round_taunt_4,Getting closer. Still not scared.,Estás a chegar perto. Ainda não tenho medo.,Te acercas. Todavía no tengo miedo.,Tu t'approches. Je n'ai pas encore peur.,Du kommst näher. Noch hab ich keine Angst.,Ti stai avvicinando. Non ho ancora paura.
+scenario_01_round_taunt_5,Halfway there. Halfway from over.,Estás a meio caminho. Também estás a meio de perder.,Vas a mitad de camino. También a mitad de perder.,À mi-chemin. À mi-chemin de la défaite aussi.,Die Hälfte geschafft. Auch die Hälfte zum Verlieren.,Sei a metà strada. Anche a metà per perdere.
+scenario_01_round_taunt_6,Now it's getting interesting.,Agora começa a ficar interessante.,Ahora se pone interesante.,Maintenant ça devient intéressant.,Jetzt wird's interessant.,Ora si fa interessante.
+scenario_01_round_taunt_7,You might actually make it.,Se calhar até consegues.,Puede que lo consigas.,Tu pourrais peut-être y arriver.,Vielleicht schaffst du es tatsächlich.,Forse ce la puoi fare davvero.
+scenario_01_round_taunt_8,One more push!,Mais um esforço!,¡Un último esfuerzo!,Encore un effort !,Noch ein letzter Schub!,Un ultimo sforzo!
+scenario_01_round_taunt_9,This ends NOW.,Isto acaba AGORA.,Esto termina AHORA.,Ça se termine MAINTENANT.,Das endet JETZT.,Finisce ORA.

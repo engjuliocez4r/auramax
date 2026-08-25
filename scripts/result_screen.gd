@@ -1,33 +1,47 @@
 extends Control
 class_name ResultScreen
-## Duel result popup (design point 64): total aura reached, remaining-time
-## rank bonus, victory rank, rank bar fill/level-up, coins, trophy
-## ceremony, then a performance-matched announcer line, each revealed in
-## turn with a short pause between beats.
+## Per-round result popup (design points 63, 64): total aura reached,
+## remaining-time ego bonus, ego gained, ego bar fill/level-up, coins, then
+## the round's taunt line, each revealed in turn with a short pause between
+## beats.
 ##
-## Duck-types onto the host's duel_won signal exactly like announcer.gd
-## does, so duel.gd's tap/streak/aura/burst logic never has to know this
-## screen exists. This is also the single place that converts a victory
-## into permanent progress: farmed aura itself never touches rank or the
-## story checkpoint — only rank_reward and the time bonus computed here do
-## (design point 62's anti-cheat rule). Progress is committed to GameState
-## immediately on duel_won, before the reveal animation plays, so closing
-## the app mid-celebration never loses it (design point 65).
+## Duck-types onto the host's round_won signal exactly like announcer.gd
+## duck-types onto streak_changed. duel.gd reserves round_won for rounds
+## 1-9 of the current scenario (see _check_victory()) — round 10, the boss,
+## fires duel_won instead and is handled by BossDefeatScreen, never this
+## screen. This is also the single place that converts a round win into
+## permanent progress: farmed aura itself never touches ego or the story
+## checkpoint — only ego_per_round, the time bonus computed here, and
+## coin_per_round do (design point 62's anti-cheat rule). Progress (aura
+## checkpoint, ego, coins, and which round comes next) is committed to
+## GameState immediately on round_won, before the reveal animation plays,
+## so closing the app mid-celebration never loses it (design point 65).
+##
+## "Continue" does NOT reload the scene: it calls back into duel.gd's
+## advance_round(), which re-arms for the next round's threshold using the
+## GameState bookkeeping this screen already committed. The underlying
+## tap/streak/aura/intensity/burst state is untouched by any of this — the
+## scenario just keeps running as one continuous duel (design point 63).
+##
+## CLAUDE.md Rule 1: `scenario` below is deliberately UNTYPED (never
+## `: Scenario`) even though this script already has its own class_name —
+## Scenario is a separate, newer class_name'd script, and typing against it
+## here would break this whole scene if Scenario isn't in the editor's
+## global class cache yet. Members are accessed duck-typed, same idea as
+## duel.gd's story_scenarios comment.
 
 @export var reveal_pause: float = 0.7 # Seconds between each reveal beat.
-@export var time_to_rank_ratio: float = 0.2 # Rank points earned per second of time remaining.
-@export var rank_per_level: int = 100 # Rank points needed for one rank level-up.
-@export var rank_bar_fill_duration: float = 0.6 # Seconds for the rank bar to animate one fill segment.
-@export var trophy_pulse_scale: float = 1.2
+@export var time_to_ego_ratio: float = 0.2 # Ego points earned per second of time remaining.
+@export var ego_per_level: int = 100 # Ego points needed for one ego level-up.
+@export var ego_bar_fill_duration: float = 0.6 # Seconds for the ego bar to animate one fill segment.
 
 @onready var _dim: ColorRect = $Dim
 @onready var _aura_label: Label = $AuraLabel
 @onready var _time_bonus_label: Label = $TimeBonusLabel
-@onready var _victory_rank_label: Label = $VictoryRankLabel
-@onready var _rank_bar: ProgressBar = $RankBar
-@onready var _rank_label: Label = $RankLabel
+@onready var _victory_ego_label: Label = $VictoryEgoLabel
+@onready var _ego_bar: ProgressBar = $EgoBar
+@onready var _ego_label: Label = $EgoLabel
 @onready var _coins_label: Label = $CoinsLabel
-@onready var _trophy_label: Label = $TrophyLabel
 @onready var _continue_button: Button = $ContinueButton
 
 var _time_left_cache: float = 0.0
@@ -40,8 +54,8 @@ func _ready() -> void:
 	var host := get_parent()
 	if host == null:
 		return
-	if host.has_signal("duel_won"):
-		host.duel_won.connect(_on_duel_won)
+	if host.has_signal("round_won"):
+		host.round_won.connect(_on_round_won)
 	if host.has_node("CountdownTimer"):
 		var timer := host.get_node("CountdownTimer")
 		if timer.has_signal("time_updated"):
@@ -52,30 +66,27 @@ func _on_time_updated(value: float) -> void:
 	_time_left_cache = value
 
 
-func _on_duel_won(final_aura: float) -> void:
+func _on_round_won(final_aura: float, round_index: int) -> void:
 	var host := get_parent()
-	var opponent: Opponent = host.current_opponent
-	if opponent == null:
+	var scenario = host.current_scenario # Untyped — see class doc (CLAUDE.md Rule 1).
+	if scenario == null:
 		return
 
-	var time_bonus_rank := int(floor(_time_left_cache * time_to_rank_ratio))
-	var victory_rank := opponent.rank_reward
-	var total_rank_gain := time_bonus_rank + victory_rank
-	var rank_points_before := GameState.rank_points
-	var rank_before := GameState.rank
+	var time_bonus_ego := int(floor(_time_left_cache * time_to_ego_ratio))
+	var total_ego_gain := time_bonus_ego + scenario.ego_per_round
+	var ego_points_before := GameState.ego_points
+	var ego_before := GameState.ego
 
 	# Commit first, animate second — see class doc.
-	GameState.set_current_aura(opponent.aura_threshold)
-	GameState.add_defeated_opponent(opponent.id)
-	GameState.add_coins(opponent.coin_reward)
-	if opponent.cosmetic_id != "":
-		GameState.add_cosmetic(opponent.cosmetic_id)
-	GameState.add_rank(total_rank_gain, rank_per_level)
+	GameState.set_current_aura(scenario.round_thresholds[round_index])
+	GameState.set_current_round_index(round_index + 1)
+	GameState.add_coins(scenario.coin_per_round)
+	GameState.add_ego(total_ego_gain, ego_per_level)
 
-	_play_reveal(host, opponent, final_aura, time_bonus_rank, victory_rank, rank_points_before, rank_before)
+	_play_reveal(host, scenario, round_index, final_aura, time_bonus_ego, ego_points_before, ego_before)
 
 
-func _play_reveal(host: Node, opponent: Opponent, final_aura: float, time_bonus_rank: int, victory_rank: int, rank_points_before: int, rank_before: int) -> void:
+func _play_reveal(host: Node, scenario, round_index: int, final_aura: float, time_bonus_ego: int, ego_points_before: int, ego_before: int) -> void:
 	_reset_labels()
 	visible = true
 	modulate.a = 1.0
@@ -83,85 +94,70 @@ func _play_reveal(host: Node, opponent: Opponent, final_aura: float, time_bonus_
 	var tween := create_tween()
 	tween.tween_callback(func() -> void: _aura_label.text = tr("result_aura_label") % int(final_aura))
 	tween.tween_interval(reveal_pause)
-	tween.tween_callback(func() -> void: _time_bonus_label.text = tr("result_time_bonus_label") % time_bonus_rank)
+	tween.tween_callback(func() -> void: _time_bonus_label.text = tr("result_time_bonus_label") % time_bonus_ego)
 	tween.tween_interval(reveal_pause)
-	tween.tween_callback(func() -> void: _victory_rank_label.text = tr("result_victory_rank_label") % victory_rank)
+	tween.tween_callback(func() -> void: _victory_ego_label.text = tr("result_victory_ego_label") % scenario.ego_per_round)
 	tween.tween_interval(reveal_pause)
-	_animate_rank_bar(tween, rank_points_before, rank_before)
+	_animate_ego_bar(tween, ego_points_before, ego_before)
 	tween.tween_interval(reveal_pause)
-	tween.tween_callback(func() -> void: _coins_label.text = tr("result_coins_label") % opponent.coin_reward)
+	tween.tween_callback(func() -> void: _coins_label.text = tr("result_coins_label") % scenario.coin_per_round)
 	tween.tween_interval(reveal_pause)
-	tween.tween_callback(_play_trophy_ceremony)
-	tween.tween_interval(reveal_pause)
-	tween.tween_callback(_announce_performance.bind(host, opponent))
+	tween.tween_callback(_speak_taunt.bind(host, scenario, round_index))
 	tween.tween_interval(reveal_pause)
 	tween.tween_callback(func() -> void: _continue_button.visible = true)
 
 
-func _animate_rank_bar(tween: Tween, points_before: int, rank_before_val: int) -> void:
-	_rank_bar.min_value = 0
-	_rank_bar.max_value = rank_per_level
-	_rank_bar.value = points_before
-	_rank_label.text = tr("result_rank_level_label") % rank_before_val
+func _animate_ego_bar(tween: Tween, points_before: int, ego_before_val: int) -> void:
+	_ego_bar.min_value = 0
+	_ego_bar.max_value = ego_per_level
+	_ego_bar.value = points_before
+	_ego_label.text = tr("result_ego_level_label") % ego_before_val
 
-	var levels_gained := GameState.rank - rank_before_val
-	var final_points := GameState.rank_points
-	var segment_duration := rank_bar_fill_duration / float(maxi(levels_gained, 0) + 1)
+	var levels_gained := GameState.ego - ego_before_val
+	var final_points := GameState.ego_points
+	var segment_duration := ego_bar_fill_duration / float(maxi(levels_gained, 0) + 1)
 
 	if levels_gained <= 0:
-		tween.tween_property(_rank_bar, "value", final_points, segment_duration)
+		tween.tween_property(_ego_bar, "value", final_points, segment_duration)
 		return
 
-	tween.tween_property(_rank_bar, "value", rank_per_level, segment_duration)
-	var display_rank := rank_before_val
+	tween.tween_property(_ego_bar, "value", ego_per_level, segment_duration)
+	var display_ego := ego_before_val
 	for i in range(levels_gained):
-		display_rank += 1
+		display_ego += 1
 		var is_last := i == levels_gained - 1
-		tween.tween_callback(_set_rank_bar_segment_start.bind(display_rank))
-		var target_value: float = float(final_points) if is_last else float(rank_per_level)
-		tween.tween_property(_rank_bar, "value", target_value, segment_duration)
+		tween.tween_callback(_set_ego_bar_segment_start.bind(display_ego))
+		var target_value: float = float(final_points) if is_last else float(ego_per_level)
+		tween.tween_property(_ego_bar, "value", target_value, segment_duration)
 
 
-func _set_rank_bar_segment_start(display_rank: int) -> void:
-	_rank_bar.value = 0
-	_rank_label.text = tr("result_rank_level_label") % display_rank
+func _set_ego_bar_segment_start(display_ego: int) -> void:
+	_ego_bar.value = 0
+	_ego_label.text = tr("result_ego_level_label") % display_ego
 
 
-func _play_trophy_ceremony() -> void:
-	_trophy_label.text = tr("result_trophy_label")
-	_trophy_label.visible = true
-	var tween := create_tween()
-	tween.tween_property(_trophy_label, "scale", Vector2.ONE * trophy_pulse_scale, 0.15)
-	tween.tween_property(_trophy_label, "scale", Vector2.ONE, 0.15)
-
-
-func _announce_performance(host: Node, opponent: Opponent) -> void:
+func _speak_taunt(host: Node, scenario, round_index: int) -> void:
+	if round_index < 0 or round_index >= scenario.round_taunts.size():
+		return
 	if not host.has_node("Announcer"):
 		return
 	var announcer := host.get_node("Announcer")
-	if not announcer.has_method("announce"):
+	if not announcer.has_method("say_line"):
 		return
-	var duration := opponent.duel_duration if opponent.duel_duration > 0.0 else 90.0
-	var ratio := clampf(_time_left_cache / duration, 0.0, 1.0)
-	var event_key := "victory_clear"
-	if ratio >= 0.5:
-		event_key = "victory_perfect"
-	elif ratio >= 0.2:
-		event_key = "victory_good"
-	announcer.announce(event_key)
+	announcer.say_line(scenario.round_taunts[round_index])
 
 
 func _on_continue_pressed() -> void:
-	get_tree().reload_current_scene()
+	visible = false
+	var host := get_parent()
+	if host != null and host.has_method("advance_round"):
+		host.advance_round()
 
 
 func _reset_labels() -> void:
 	_aura_label.text = ""
 	_time_bonus_label.text = ""
-	_victory_rank_label.text = ""
+	_victory_ego_label.text = ""
 	_coins_label.text = ""
-	_trophy_label.text = ""
-	_trophy_label.visible = false
-	_trophy_label.scale = Vector2.ONE
 	_continue_button.visible = false
-	_rank_bar.value = 0
+	_ego_bar.value = 0

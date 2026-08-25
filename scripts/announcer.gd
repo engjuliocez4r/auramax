@@ -58,6 +58,15 @@ func announce(event_key: String) -> void:
 	_play_voice(line_key)
 
 
+## Shows one SPECIFIC translation key directly, bypassing the event-pool
+## selection in announce() above — for story-mode round taunts (design
+## point 63), which are one fixed line per round rather than a random pool
+## entry.
+func say_line(line_key: String) -> void:
+	_show_line(tr(line_key))
+	_play_voice(line_key)
+
+
 func _connect_to_host_signals() -> void:
 	# Duck-typed on purpose: the host (duel, arcade, ...) never references
 	# this script, so this is the only side of the connection that can wire up.
