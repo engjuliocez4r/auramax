@@ -18,7 +18,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 text = ""
 
-[node name="EgoBar" type="ProgressBar" parent="."]
+[node name="RankBar" type="ProgressBar" parent="."]
 anchor_left = 0.1
 anchor_right = 0.9
 anchor_top = 0.105
