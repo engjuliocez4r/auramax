@@ -94,3 +94,9 @@ Qualquer teste escrito para validar uma tarefa FICA no repositório, na pasta `t
 - Se algum teste falhar, a tarefa NÃO está terminada, mesmo que o resto funcione.
 
 **Armadilha técnica a evitar (já aconteceu neste projeto):** instanciar uma cena e chamar os seus métodos imediatamente NÃO dispara o `_ready()` do Godot, logo os sinais ainda não estão ligados e o teste pode passar por razões erradas. Um teste tem de esperar pelo menos um frame real (`await get_tree().process_frame`) depois de adicionar a cena à árvore, antes de qualquer asserção. Um teste que não faça isto está a mentir.
+
+**Como correr a suíte:**
+```
+"J:\PASTA DE BACKUP TUDO\GODOT\auraGodot472\Godot_v4.7.2-stable_win64_console.exe" --headless --path "J:\PASTA DE BACKUP TUDO\GODOT\auraGodot472\auramax" res://tests/duel_input_test.tscn
+```
+Imprime uma linha PASS/FAIL por teste e sai com código 0 se tudo passar, ou 1 se alguma asserção falhar — verificar sempre o exit code, não só ler a última linha impressa.
