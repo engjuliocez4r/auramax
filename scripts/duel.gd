@@ -355,7 +355,7 @@ func _handle_tap(side: String) -> void:
 		# so the very next alternating tap is still judged against the side/time
 		# that was actually last valid.
 		invalid_tap.emit(side)
-		_reset_streak()
+		_reset_streak(false) # Same-side repeat must NOT clear _last_side, or alternating hammer-one-side taps would each look like a fresh start (see design point 60).
 		return
 
 	# One uniform timeout covers both gaps the spec calls out: the gap
@@ -389,9 +389,14 @@ func _complete_pair() -> void:
 	_check_milestones()
 
 
-func _reset_streak() -> void:
+func _reset_streak(clear_last_side: bool = true) -> void:
 	_pair_pending = false
-	_last_side = "" # First tap after any reset must count, whichever side it lands on.
+	if clear_last_side:
+		# Only for timeout-driven resets: the player who stopped and came back
+		# isn't punished for tapping the same side they last used. A same-side
+		# repeat reset passes false instead, so hammering one side never looks
+		# like a fresh start (see design point 60).
+		_last_side = ""
 	_tap_count = 0 # Broken sequence restarts the tap count too, even if _streak was already 0 (see design point 60).
 	if _streak == 0:
 		return
