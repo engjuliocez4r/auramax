@@ -375,7 +375,8 @@ Razão: com saturação ao streak 10, todos os streaks acima pareciam iguais e a
 **60. REGRAS DE INPUT APRENDIDAS NA IMPLEMENTAÇÃO**
 - O primeiro toque depois de qualquer reset de streak conta sempre, seja qual for o lado. Rejeitá-lo por "repetir o lado" castigaria o jogador por algo que não podia saber.
 - O Windows promove cada toque físico num clique de rato sintético. Sem tratamento, cada toque era processado duas vezes e o segundo invalidava sempre o par. Resolvido com `pointing/emulate_mouse_from_touch=false` no `project.godot`, mais dedupe por tempo no código.
-- As partículas começam a emitir exatamente no limiar de streak configurado, não um acima.
+- As partículas começam a emitir exatamente no limiar configurado, não um acima.
+- A emissão de orbs conta TOQUES individuais (`orb_tap_threshold`), não pares de streak — decisão deliberada, ao contrário de todos os outros sistemas (marcos, locutor, burst, intensidade, o alvo de 67 streaks), que continuam ligados a `_streak` (pares). Razão: as orbs são a primeira recompensa visual do loop e têm de aparecer depressa o suficiente para parecer responsivo — 5 toques físicos, não 10 (o que 5 streaks exigiria). Os sistemas de streak escalam numa curva deliberadamente mais lenta; misturar as duas contagens atrasaria as orbs sem necessidade.
 
 **61. MÉTODO DE TRABALHO — LIÇÃO APRENDIDA**
 Quando um prompt pede para REMOVER um mecanismo, tem de dizer explicitamente o que FICA. Ao pedir a remoção do decaimento gradual do streak, foi removido também o relógio que zerava sem input, reintroduzindo um bug já corrigido.

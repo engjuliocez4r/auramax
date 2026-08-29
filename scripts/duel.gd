@@ -74,7 +74,7 @@ signal duel_lost() # Story mode only — fires once when the countdown reaches z
 @export var burst_duration: float = 8.0 # Seconds is_bursting stays true once burst_meter fires.
 @export var burst_multiplier: float = 5.0 # Aura multiplier applied to every valid tap while is_bursting.
 
-@export var orb_streak_threshold: int = 5
+@export var orb_tap_threshold: int = 5 # Counts individual taps, not streak pairs — see design point 60: orbs are the earliest visual reward and must appear fast, decoupled from the slower streak-driven escalation.
 @export var tap_highlight_alpha: float = 0.12 # Also the zone flash's peak alpha (base is 0.0).
 @export var tap_highlight_duration: float = 0.25
 @export var intensity_rise_speed: float = 2.5 # Slow on purpose: building tension takes time.
@@ -132,7 +132,7 @@ const ORB_COLOR_DIM := Color(0.9, 0.55, 0.25) # Low intensity: dim embers.
 const ORB_COLOR_BRIGHT := Color(1.0, 0.95, 0.7) # Full intensity: hot white-gold.
 const ORB_MIN_ALPHA := 0.22 # Peak alpha of an orb at zero intensity: barely there.
 const ORB_MAX_ALPHA := 0.85 # Peak alpha of an orb at full intensity: luminous.
-const ORB_MIN_SPAWN_RATE := 2.5 # orbs/sec floor once past orb_streak_threshold, at zero intensity — high enough that orbs read as present right at the threshold, not just technically emitting.
+const ORB_MIN_SPAWN_RATE := 2.5 # orbs/sec floor once past orb_tap_threshold, at zero intensity — high enough that orbs read as present right at the threshold, not just technically emitting.
 const ORB_SPEED_MIN_INTENSITY_SCALE := 0.9 # Speed varies only slightly with intensity, per design.
 const ORB_SPEED_MAX_INTENSITY_SCALE := 1.15
 const ORB_EDGE_MARGIN := 30.0 # px outside the viewport edge orbs first appear at, so they drift into view.
@@ -185,6 +185,7 @@ var _last_side: String = ""
 var _last_valid_tap_time_ms: int = -1 # Timestamp of the most recent valid (alternating) tap, of either kind.
 var _pair_pending: bool = false # True once the first tap of a pair has landed, waiting for its second.
 var _streak: int = 0
+var _tap_count: int = 0 # Individual valid taps in the current unbroken run; drives orb emission only, decoupled from _streak (pairs) — see design point 60.
 var _current_aura: float = 0.0
 var _intensity_target: float = 0.0
 var _next_milestone_index: int = 0
@@ -391,6 +392,7 @@ func _complete_pair() -> void:
 func _reset_streak() -> void:
 	_pair_pending = false
 	_last_side = "" # First tap after any reset must count, whichever side it lands on.
+	_tap_count = 0 # Broken sequence restarts the tap count too, even if _streak was already 0 (see design point 60).
 	if _streak == 0:
 		return
 	_streak = 0
@@ -415,6 +417,7 @@ func _check_milestones() -> void:
 
 
 func _grant_aura() -> void:
+	_tap_count += 1
 	var bonus := minf(_streak * streak_bonus_step, max_bonus)
 	var amount := base_aura * (1.0 + bonus)
 	if is_bursting:
@@ -557,7 +560,7 @@ func _update_labels() -> void:
 
 
 func _update_orb_spawning(delta: float) -> void:
-	if _streak < orb_streak_threshold:
+	if _tap_count < orb_tap_threshold:
 		_orb_spawn_accumulator = 0.0
 		return
 	_orb_spawn_accumulator += delta * _orb_spawn_rate
