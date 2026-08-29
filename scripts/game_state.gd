@@ -8,8 +8,8 @@ extends Node
 signal player_name_changed(new_name: String)
 signal flag_changed(new_flag_id: String)
 signal avatar_gender_changed(new_gender: AvatarGender)
-signal rank_changed(new_rank: int)
-signal rank_points_changed(new_rank_points: int)
+signal ego_changed(new_ego: int)
+signal ego_points_changed(new_ego_points: int)
 signal coins_changed(new_coins: int)
 signal cosmetics_changed
 signal current_aura_changed(new_value: float) # Story progress (design point 62) — never resets between duels.
@@ -33,8 +33,8 @@ const MAX_STORY_AURA := 1000000.0 # Design point 62: the story runs 0 to 1,000,0
 var player_name: String = DEFAULT_PLAYER_NAME
 var flag_id: String = DEFAULT_FLAG_ID
 var avatar_gender: AvatarGender = DEFAULT_AVATAR_GENDER
-var rank: int = 0 # Permanent player level (design point 62) — "sou rank 32". Distinct from story aura.
-var rank_points: int = 0 # Progress toward the next rank; see add_rank().
+var ego: int = 0 # Permanent player level (design point 62) — "sou ego 32". Distinct from story aura.
+var ego_points: int = 0 # Progress toward the next ego level; see add_ego().
 var coins: int = 0
 var owned_cosmetics: Array = []
 var equipped_cosmetics: Dictionary = {}
@@ -73,22 +73,22 @@ func set_avatar_gender(gender: AvatarGender) -> void:
 	avatar_gender_changed.emit(avatar_gender)
 
 
-## Adds rank progress and rolls it over into rank level-ups. points_per_rank
+## Adds ego progress and rolls it over into ego level-ups. points_per_level
 ## is passed in by the caller (the result screen) rather than stored here,
 ## keeping the level-up curve a tunable of the presentation that reveals it,
 ## not a hardcoded constant in this autoload.
-func add_rank(points: int, points_per_rank: int) -> void:
+func add_ego(points: int, points_per_level: int) -> void:
 	if points == 0:
 		return
-	rank_points += points
-	var rank_before := rank
-	while points_per_rank > 0 and rank_points >= points_per_rank:
-		rank_points -= points_per_rank
-		rank += 1
+	ego_points += points
+	var ego_before := ego
+	while points_per_level > 0 and ego_points >= points_per_level:
+		ego_points -= points_per_level
+		ego += 1
 	_save()
-	rank_points_changed.emit(rank_points)
-	if rank != rank_before:
-		rank_changed.emit(rank)
+	ego_points_changed.emit(ego_points)
+	if ego != ego_before:
+		ego_changed.emit(ego)
 
 
 func set_current_aura(value: float) -> void:
@@ -133,8 +133,12 @@ func _load() -> void:
 	player_name = _config.get_value(SECTION_PLAYER, "player_name", DEFAULT_PLAYER_NAME)
 	flag_id = _config.get_value(SECTION_PLAYER, "flag_id", DEFAULT_FLAG_ID)
 	avatar_gender = _config.get_value(SECTION_PLAYER, "avatar_gender", DEFAULT_AVATAR_GENDER)
-	rank = _config.get_value(SECTION_PLAYER, "rank", 0)
-	rank_points = _config.get_value(SECTION_PLAYER, "rank_points", 0)
+	# Config keys deliberately stay "rank"/"rank_points" — the interface-facing
+	# rename to "ego" is code-side only, so existing save.cfg files (with real
+	# player progress already in them) keep loading correctly instead of
+	# silently resetting to 0 under new key names.
+	ego = _config.get_value(SECTION_PLAYER, "rank", 0)
+	ego_points = _config.get_value(SECTION_PLAYER, "rank_points", 0)
 	coins = _config.get_value(SECTION_PLAYER, "coins", 0)
 	owned_cosmetics = _config.get_value(SECTION_COSMETICS, "owned", [])
 	equipped_cosmetics = _config.get_value(SECTION_COSMETICS, "equipped", {})
@@ -146,8 +150,8 @@ func _save() -> void:
 	_config.set_value(SECTION_PLAYER, "player_name", player_name)
 	_config.set_value(SECTION_PLAYER, "flag_id", flag_id)
 	_config.set_value(SECTION_PLAYER, "avatar_gender", avatar_gender)
-	_config.set_value(SECTION_PLAYER, "rank", rank)
-	_config.set_value(SECTION_PLAYER, "rank_points", rank_points)
+	_config.set_value(SECTION_PLAYER, "rank", ego) # See _load() — key name kept for save compatibility.
+	_config.set_value(SECTION_PLAYER, "rank_points", ego_points)
 	_config.set_value(SECTION_PLAYER, "coins", coins)
 	_config.set_value(SECTION_COSMETICS, "owned", owned_cosmetics)
 	_config.set_value(SECTION_COSMETICS, "equipped", equipped_cosmetics)

@@ -33,9 +33,9 @@ duel_time_label,%ds,%ds,%ds,%ds,%ds,%ds
 opponent_card_threshold_label,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA
 opponent_card_cosmetic_label,Unlocked!,Desbloqueado!,¡Desbloqueado!,Débloqué !,Freigeschaltet!,Sbloccato!
 result_aura_label,Aura reached: %d,Aura atingida: %d,Aura alcanzada: %d,Aura atteinte : %d,Erreichte Aura: %d,Aura raggiunta: %d
-result_time_bonus_label,Time bonus: +%d rank,Bónus de tempo: +%d rank,Bono de tiempo: +%d rank,Bonus de temps : +%d rank,Zeitbonus: +%d Rang,Bonus tempo: +%d rank
-result_victory_rank_label,Victory rank: +%d,Rank de vitória: +%d,Rank de victoria: +%d,Rang de victoire : +%d,Sieg-Rang: +%d,Rank di vittoria: +%d
-result_rank_level_label,Rank %d,Rank %d,Rank %d,Rang %d,Rang %d,Rank %d
+result_time_bonus_label,Time bonus: +%d ego,Bónus de tempo: +%d ego,Bono de tiempo: +%d ego,Bonus de temps : +%d ego,Zeitbonus: +%d Ego,Bonus tempo: +%d ego
+result_victory_ego_label,Victory ego: +%d,Ego de vitória: +%d,Ego de victoria: +%d,Ego de victoire : +%d,Sieg-Ego: +%d,Ego di vittoria: +%d
+result_ego_level_label,Ego %d,Ego %d,Ego %d,Ego %d,Ego %d,Ego %d
 result_coins_label,Coins: +%d,Moedas: +%d,Monedas: +%d,Pièces : +%d,Münzen: +%d,Monete: +%d
 result_trophy_label,New cosmetic unlocked!,Novo cosmético desbloqueado!,¡Nuevo cosmético desbloqueado!,Nouveau cosmétique débloqué !,Neues Kosmetikitem freigeschaltet!,Nuovo cosmetico sbloccato!
 result_continue_button,Continue,Continuar,Continuar,Continuer,Weiter,Continua
