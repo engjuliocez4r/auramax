@@ -9,10 +9,16 @@ class_name ResultScreen
 ## does, so duel.gd's tap/streak/aura/burst logic never has to know this
 ## screen exists. This is also the single place that converts a victory
 ## into permanent progress: farmed aura itself never touches rank or the
-## story checkpoint — only rank_reward and the time bonus computed here do
-## (design point 62's anti-cheat rule). Progress is committed to GameState
-## immediately on duel_won, before the reveal animation plays, so closing
-## the app mid-celebration never loses it (design point 65).
+## story checkpoint — only the scenario's per-round/boss ego and coin
+## rewards and the time bonus computed here do (design point 62's
+## anti-cheat rule). Progress is committed to GameState immediately on
+## duel_won, before the reveal animation plays, so closing the app
+## mid-celebration never loses it (design point 65).
+##
+## current_scenario/round_index below are untyped/Resource-typed only, per
+## CLAUDE.md Rule 1 — the Scenario class is not yet in Godot's class-name
+## cache, so typing against it would crash this whole scene's parse.
+## Duck-typed field access only.
 
 @export var reveal_pause: float = 0.7 # Seconds between each reveal beat.
 @export var time_to_rank_ratio: float = 0.2 # Rank points earned per second of time remaining.
@@ -54,28 +60,36 @@ func _on_time_updated(value: float) -> void:
 
 func _on_duel_won(final_aura: float) -> void:
 	var host := get_parent()
-	var opponent: Opponent = host.current_opponent
-	if opponent == null:
+	var scenario: Resource = host.current_scenario
+	var round_index: int = host.current_round_index
+	if scenario == null or round_index < 0:
 		return
 
+	# Rewards don't escalate round by round — the payoff is deliberately
+	# concentrated in the boss (the last threshold), which pays its own
+	# separate, larger amounts plus the cosmetic (design point 63).
+	var is_boss_round: bool = round_index == scenario.round_thresholds.size() - 1
+	var ego_reward: int = scenario.boss_ego_reward if is_boss_round else scenario.ego_per_round
+	var coin_reward: int = scenario.boss_coin_reward if is_boss_round else scenario.coin_per_round
+	var cosmetic_id: String = scenario.boss_cosmetic_id if is_boss_round else ""
+
 	var time_bonus_rank := int(floor(_time_left_cache * time_to_rank_ratio))
-	var victory_rank := opponent.rank_reward
+	var victory_rank := ego_reward
 	var total_rank_gain := time_bonus_rank + victory_rank
 	var rank_points_before := GameState.rank_points
 	var rank_before := GameState.rank
 
 	# Commit first, animate second — see class doc.
-	GameState.set_current_aura(opponent.aura_threshold)
-	GameState.add_defeated_opponent(opponent.id)
-	GameState.add_coins(opponent.coin_reward)
-	if opponent.cosmetic_id != "":
-		GameState.add_cosmetic(opponent.cosmetic_id)
+	GameState.set_current_aura(scenario.round_thresholds[round_index])
+	GameState.add_coins(coin_reward)
+	if cosmetic_id != "":
+		GameState.add_cosmetic(cosmetic_id)
 	GameState.add_rank(total_rank_gain, rank_per_level)
 
-	_play_reveal(host, opponent, final_aura, time_bonus_rank, victory_rank, rank_points_before, rank_before)
+	_play_reveal(host, scenario, coin_reward, final_aura, time_bonus_rank, victory_rank, rank_points_before, rank_before)
 
 
-func _play_reveal(host: Node, opponent: Opponent, final_aura: float, time_bonus_rank: int, victory_rank: int, rank_points_before: int, rank_before: int) -> void:
+func _play_reveal(host: Node, scenario: Resource, coin_reward: int, final_aura: float, time_bonus_rank: int, victory_rank: int, rank_points_before: int, rank_before: int) -> void:
 	_reset_labels()
 	visible = true
 	modulate.a = 1.0
@@ -89,11 +103,11 @@ func _play_reveal(host: Node, opponent: Opponent, final_aura: float, time_bonus_
 	tween.tween_interval(reveal_pause)
 	_animate_rank_bar(tween, rank_points_before, rank_before)
 	tween.tween_interval(reveal_pause)
-	tween.tween_callback(func() -> void: _coins_label.text = tr("result_coins_label") % opponent.coin_reward)
+	tween.tween_callback(func() -> void: _coins_label.text = tr("result_coins_label") % coin_reward)
 	tween.tween_interval(reveal_pause)
 	tween.tween_callback(_play_trophy_ceremony)
 	tween.tween_interval(reveal_pause)
-	tween.tween_callback(_announce_performance.bind(host, opponent))
+	tween.tween_callback(_announce_performance.bind(host, scenario))
 	tween.tween_interval(reveal_pause)
 	tween.tween_callback(func() -> void: _continue_button.visible = true)
 
@@ -135,13 +149,13 @@ func _play_trophy_ceremony() -> void:
 	tween.tween_property(_trophy_label, "scale", Vector2.ONE, 0.15)
 
 
-func _announce_performance(host: Node, opponent: Opponent) -> void:
+func _announce_performance(host: Node, scenario: Resource) -> void:
 	if not host.has_node("Announcer"):
 		return
 	var announcer := host.get_node("Announcer")
 	if not announcer.has_method("announce"):
 		return
-	var duration := opponent.duel_duration if opponent.duel_duration > 0.0 else 90.0
+	var duration: float = scenario.round_duration if scenario.round_duration > 0.0 else 90.0
 	var ratio := clampf(_time_left_cache / duration, 0.0, 1.0)
 	var event_key := "victory_clear"
 	if ratio >= 0.5:

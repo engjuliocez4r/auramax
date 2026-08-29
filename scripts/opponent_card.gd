@@ -2,8 +2,8 @@ extends Control
 class_name OpponentCard
 ## Small top-right card: presence, not protagonist (design point 20).
 ##
-## Fully passive: duel.gd calls set_opponent() once, right after picking the
-## story opponent, and never touches this node again. The break-apart
+## Fully passive: duel.gd calls set_scenario() once, right after picking the
+## current round, and never touches this node again. The break-apart
 ## reaction is self-driven — this script duck-types onto the host's
 ## duel_won signal in _ready(), same pattern announcer.gd uses for its own
 ## host, so it stays decoupled from duel.gd's aura/streak/burst logic.
@@ -17,7 +17,12 @@ class_name OpponentCard
 @onready var _name_label: Label = $NameLabel
 @onready var _threshold_label: Label = $ThresholdLabel
 
-var _opponent: Opponent
+# Untyped/Resource-typed only, per CLAUDE.md Rule 1 — the Scenario class is
+# not yet in Godot's class-name cache, so typing these against it would
+# crash this whole scene's parse. Duck-typed field access only — see
+# set_scenario().
+var _scenario: Resource
+var _boss_name_key: String = ""
 
 
 func _ready() -> void:
@@ -26,13 +31,14 @@ func _ready() -> void:
 		host.duel_won.connect(_on_duel_won)
 
 
-func set_opponent(opponent: Opponent) -> void:
-	_opponent = opponent
-	visible = opponent != null
-	if opponent == null:
+func set_scenario(scenario: Resource, round_index: int) -> void:
+	_scenario = scenario
+	visible = scenario != null
+	if scenario == null:
 		return
-	_name_label.text = tr(opponent.display_name)
-	_threshold_label.text = tr("opponent_card_threshold_label") % int(opponent.aura_threshold)
+	_boss_name_key = scenario.boss_name
+	_name_label.text = tr(_boss_name_key)
+	_threshold_label.text = tr("opponent_card_threshold_label") % int(scenario.round_thresholds[round_index])
 
 
 func _on_duel_won(_final_aura: float) -> void:
@@ -52,8 +58,8 @@ func _break_apart() -> void:
 
 
 func _release_cosmetic() -> void:
-	if _opponent == null:
+	if _scenario == null:
 		return
 	_portrait.visible = false
 	_name_label.text = tr("opponent_card_cosmetic_label")
-	_threshold_label.text = tr(_opponent.display_name)
+	_threshold_label.text = tr(_boss_name_key)

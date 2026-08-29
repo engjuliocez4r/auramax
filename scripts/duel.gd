@@ -46,7 +46,7 @@ signal burst_ready() # Fires once burst_meter reaches 1.0 — see _check_milesto
 signal burst_meter_changed(fill_ratio: float)
 signal burst_started()
 signal burst_ended()
-signal duel_won(final_aura: float) # Story mode only — fires once when _current_aura crosses current_opponent's threshold (design point 64).
+signal duel_won(final_aura: float) # Story mode only — fires once when _current_aura crosses the current round's threshold (design point 64).
 signal duel_lost() # Story mode only — fires once when the countdown reaches zero before duel_won (design point 65).
 
 ## base_aura is tuned around the scenario round thresholds (design point 63),
@@ -60,7 +60,7 @@ signal duel_lost() # Story mode only — fires once when the countdown reaches z
 @export var base_aura: float = 5.0
 @export var streak_bonus_step: float = 0.1
 @export var max_bonus: float = 2.0
-@export var aura_target: float = 100.0 # Max value shown on AuraBar; overwritten by _setup_story_opponent() once a story opponent is set.
+@export var aura_target: float = 100.0 # Max value shown on AuraBar; overwritten by _setup_story_round() once the current round is set.
 
 @export var streak_timeout: float = 1.0 # Max seconds allowed between any two consecutive valid taps.
 @export var burst_per_milestone: float = 0.2 # Fixed slice added to burst_meter (0..1) per milestone.
@@ -88,31 +88,29 @@ signal duel_lost() # Story mode only — fires once when the countdown reaches z
 @export var streak_pulse_scale: float = 1.3 # Peak scale of the streak label's zoom on each milestone.
 @export var streak_pulse_duration: float = 0.3 # Full in-out cycle length of that pulse.
 
-# Untyped for the same reason as story_opponents below: RhythmMilestones is
+# Untyped for the same reason as current_scenario below: RhythmMilestones is
 # also a class_name'd script, and duel.gd is the main scene's root script —
 # any custom-class type annotation here risks a stale global class-name
 # cache failing this whole file's parse. threshold_for_index() is called
 # duck-typed at the one call site below.
 @export var milestone_schedule = preload("res://assets/data/rhythm_milestones.tres")
 
-## Story-mode roster, in defeat order (design point 16). Data-driven: add a
-## new opponent by dropping another .tres into assets/data/opponents/ and
-## appending it here, never by touching code. GameState.defeated_opponents
-## picks the index into this array — see _setup_story_opponent().
+## Story-mode scenario (design point 63): one continuous 10-round sequence
+## against the same boss. Replaces the old story_opponents roster now that
+## progression is rounds-within-a-scenario, not a flat opponent array;
+## GameState.current_aura (compared against current_scenario.round_thresholds
+## in _setup_story_round()) picks the round, the same role
+## GameState.defeated_opponents.size() used to play against story_opponents.
 ## Untyped on purpose: duel.gd is the main scene's root script, parsed
 ## before Godot is guaranteed to have scanned every custom class_name in
-## the project. Typing this against Opponent (or any other class_name'd
+## the project. Typing this against Scenario (or any other class_name'd
 ## script written outside the editor) risks a stale global class-name
 ## cache failing this whole file's parse on a fresh clone, which kills the
 ## entire scene, not just this feature — same failure mode as the reverted
-## get_ready attempt. Elements are still real Opponent instances at
+## get_ready attempt (CLAUDE.md Rule 1). Still a real Scenario Resource at
 ## runtime; members are accessed duck-typed, like announcer.gd does onto
 ## its host.
-@export var story_opponents: Array = [
-	preload("res://assets/data/opponents/opponent_01.tres"),
-	preload("res://assets/data/opponents/opponent_02.tres"),
-	preload("res://assets/data/opponents/opponent_03.tres"),
-]
+@export var current_scenario = preload("res://assets/data/scenarios/scenario_01.tres")
 
 const HAPTIC_DURATION_MS := 20
 const BURST_HAPTIC_DURATION_MS := 60 # Stronger pulse at the moment the burst fires (design point 10).
@@ -157,7 +155,7 @@ const BURST_TINT_FADE_OUT_TIME := 0.3 # Seconds to settle back to fully transpar
 @onready var _aura_core: Node2D = $AuraCore
 # Typed against their built-in base class (Node2D/Label/Control), never
 # against the custom class_name (PowerRing, BurstCore, CountdownTimer,
-# OpponentCard) — see the story_opponents comment above for why. Custom
+# OpponentCard) — see the current_scenario comment above for why. Custom
 # members are called duck-typed at the call sites below.
 @onready var _power_ring: Node2D = $AuraCore/PowerRing
 @onready var _burst_core: Node2D = $BurstCore
@@ -170,7 +168,7 @@ const BURST_TINT_FADE_OUT_TIME := 0.3 # Seconds to settle back to fully transpar
 var intensity: float = 0.0
 var burst_meter: float = 0.0 # Savings, not the current moment: only ever grows, independent of streak resets.
 var is_bursting: bool = false # No state enum — a flag layered on top of tap/streak logic; never gates input.
-var current_opponent = null # Untyped (see story_opponents comment above) — an Opponent Resource at runtime. Public: read by OpponentCard/ResultScreen/GameOverScreen, which duck-type onto this node — see _setup_story_opponent().
+var current_round_index: int = -1 # -1 until _setup_story_round() runs, then 0-9. Mirrors the old current_opponent == null guard. Public: read by OpponentCard/ResultScreen, which duck-type onto this node — see _setup_story_round().
 var _victory_triggered: bool = false # Guards duel_won from firing more than once as aura keeps climbing after the threshold.
 
 var _last_touch_press_time_ms: int = -1000000
@@ -217,7 +215,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_layout_confetti)
 	_update_labels()
 	aura_changed.connect(_check_victory)
-	_setup_story_opponent()
+	_setup_story_round()
 
 
 func _process(delta: float) -> void:
@@ -252,30 +250,37 @@ func _center_aura_core() -> void:
 	)
 
 
-# ─── Story mode: opponent, timer, victory (design points 16, 17, 62-65) ──
+# ─── Story mode: scenario, timer, victory (design points 17, 62-65) ─────
 # Layered on top of the tap/streak/aura/burst logic above, same as the
 # presentation section below: this only reads/initializes _current_aura and
 # aura_target, it never changes how a tap is scored.
 
-func _setup_story_opponent() -> void:
-	var defeated_count := GameState.defeated_opponents.size()
-	if defeated_count >= story_opponents.size():
+func _setup_story_round() -> void:
+	# The round index is derived from GameState.current_aura against this
+	# scenario's own thresholds, not a separately persisted counter — aura is
+	# always snapped to the exact threshold on victory commit (see
+	# result_screen.gd), so "how many thresholds has this aura already
+	# passed" is exactly "which round comes next." Same role
+	# GameState.defeated_opponents.size() used to play against story_opponents.
+	var round_index := 0
+	while round_index < current_scenario.round_thresholds.size() and GameState.current_aura >= current_scenario.round_thresholds[round_index]:
+		round_index += 1
+	if round_index >= current_scenario.round_thresholds.size():
 		# TEMPORARY TESTING CONVENIENCE — NOT FINAL BEHAVIOUR (see DESIGN.md
-		# point 67). Only 3 story opponents exist right now, so testers hit
-		# this branch quickly. Loop back to the first opponent instead of
-		# leaving the player with no duel, so the loop can be replayed
-		# without manually clearing the save file. Remove this once enough
-		# real opponents/locations (design point 40) exist that reaching the
-		# end stops being something testers do by accident — replace it with
-		# real end-of-current-content handling then.
-		GameState.defeated_opponents = []
+		# point 67). Only one scenario exists right now, so testers clear all
+		# 10 rounds quickly. Loop back to round 0 instead of leaving the
+		# player with no duel, so the loop can be replayed without manually
+		# clearing the save file. Remove this once enough real scenarios
+		# (design point 40) exist that reaching the end stops being something
+		# testers do by accident — replace it with real end-of-content
+		# handling then.
 		GameState.current_aura = 0.0
-		defeated_count = 0
-	current_opponent = story_opponents[defeated_count]
+		round_index = 0
+	current_round_index = round_index
 
 	# Continuous story aura (point 62): this duel starts at the previous
-	# checkpoint and runs to the current opponent's threshold, never from 0.
-	aura_target = current_opponent.aura_threshold
+	# checkpoint and runs to this round's threshold, never from 0.
+	aura_target = current_scenario.round_thresholds[current_round_index]
 	_current_aura = GameState.current_aura
 	_aura_bar.min_value = GameState.current_aura
 	_aura_bar.max_value = aura_target
@@ -283,13 +288,13 @@ func _setup_story_opponent() -> void:
 	_aura_target_label.text = tr("duel_aura_target_label") % int(aura_target)
 	_update_labels()
 
-	_opponent_card.set_opponent(current_opponent)
+	_opponent_card.set_scenario(current_scenario, current_round_index)
 	_countdown_timer.time_expired.connect(_on_countdown_expired)
-	_countdown_timer.start(current_opponent.duel_duration)
+	_countdown_timer.start(current_scenario.round_duration)
 
 
 func _check_victory(new_total: float) -> void:
-	if current_opponent == null or _victory_triggered:
+	if current_round_index < 0 or _victory_triggered:
 		return
 	if new_total >= aura_target:
 		_victory_triggered = true
@@ -298,7 +303,7 @@ func _check_victory(new_total: float) -> void:
 
 
 func _on_countdown_expired() -> void:
-	if current_opponent == null or _victory_triggered:
+	if current_round_index < 0 or _victory_triggered:
 		return
 	duel_lost.emit()
 
