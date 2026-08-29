@@ -136,8 +136,10 @@ Efeito positivo: as moedas ganham tensão — guardar para a loja ou gastar para
 **20. COMPOSIÇÃO E HIERARQUIA VISUAL**
 Ordem de dominância: 1) o avatar, elemento maior e mais brilhante, ~45% da altura do ecrã; 2) a multidão e o palco; 3) o cenário de fundo, sempre mais escuro e desfocado — atmosfera, nunca competição; 4) a UI, mínima e encostada às bordas.
 Quatro camadas de profundidade: fundo em perspetiva com luzes; multidão em silhueta com contraluz; herói iluminado por spotlight num estrado; silhuetas cortadas nos cantos inferiores para dar parallax.
-Barra de aura horizontal no topo, com o valor atual à esquerda e o alvo à direita — legível num relance.
-Adversário pequeno no canto superior direito. Ao ser derrotado, o cartão parte-se e liberta o cosmético.
+Barra de aura horizontal no topo, ocupando cerca de dois terços da largura, com o valor atual à esquerda e o alvo à direita — legível num relance.
+Cartão do adversário à DIREITA da barra, lado a lado, nunca sobreposto. Barra e cartão partilham a mesma faixa horizontal sem competir pelo mesmo espaço.
+AVISO DE LEGIBILIDADE: em mockup o cartão saiu pequeno demais para se distinguir a cara ou ler o número num telemóvel real. Ou cresce, ou reduz-se ao número com retrato genérico. A decidir a testar em ecrã físico.
+Ao ser derrotado, o cartão parte-se e liberta o cosmético.
 Contador de tempo pequeno no canto superior direito.
 Núcleo de burst centrado horizontalmente, na zona inferior do ecrã, por baixo do avatar e com folga clara em relação a ele. NUNCA nos cantos: durante o clique alternado os polegares assentam exatamente nos cantos inferiores, e um medidor aí fica tapado pela mão. O centro fica livre e ganha simetria.
 O contador de streak faz parte do HUD (ver ponto 57).
@@ -361,12 +363,16 @@ Faz parte do HUD do duelo.
 Razão: o jogador precisa de ver o número para APRENDER a regra. Sem ele, "manter o ritmo" é abstrato; com ele, percebe exatamente o que conta como acerto e o que quebra a sequência.
 Número sempre visível, discreto, sem competir com o avatar. A cada marco (5, 10, 15, ...) dá um zoom in-out rápido em sincronia com a fala do locutor — deixa de ser informação e passa a fazer parte da celebração.
 Chegar a 67 streaks numa só sequência é marco especial: fala própria do locutor, efeito visual distinto e achievement (ver ponto 53).
+NOMENCLATURA NA INTERFACE: o contador aparece como "COMBO x35", não como "Streak: 35". Razão: "combo" é vocabulário que o público de 9-13 anos já conhece de outros jogos, enquanto "streak" exige tradução mental. O termo interno no código continua a ser streak.
+POSIÇÃO: por baixo do avatar, centrado, entre o boneco e o núcleo de burst. Aí não compete com a barra de aura no topo nem com o burst em baixo, e fica no eixo de simetria do ecrã.
 
 **58. REFERÊNCIAS VISUAIS ELEITAS**
 Referência MESTRA (versão final do ecrã de duelo): define o ESTILO — traço do avatar, tratamento de luz, silhuetas da multidão, profundidade em quatro camadas, hierarquia do ponto 20, barra de aura horizontal com valor atual à esquerda e alvo à direita, cartão do adversário.
 IMPORTANTE: o cenário Las Vegas é apenas o exemplo onde esse estilo foi capturado. Cada local do mapa (ponto 40) terá cenário próprio. Replica-se o TRATAMENTO, não o sítio.
 Referência do BURST: da versão anterior do mesmo ecrã, aproveita-se APENAS o objeto do núcleo — círculo com volume, espiral interior, entalhes metálicos. Alvo visual para quando a forma geométrica for substituída por arte.
 Ambas continuam a ser concept art, não assets (ponto 27).
+Foi produzida uma folha de referência com seis cenários distintos (templo, ginásio, rua com graffiti, casino, ringue de hóquei, corredor de escola) partilhando o mesmo tratamento visual. Confirma que a decisão de replicar o TRATAMENTO e não o SÍTIO funciona na prática: os seis leem-se num segundo e são inequivocamente o mesmo jogo.
+Confirma também que as silhuetas da multidão nos cantos inferiores, além do parallax (ponto 20), servem para emoldurar o núcleo de burst, dando-lhe um lugar visual em vez de o deixar solto no fundo do ecrã.
 
 **59. CURVA DE INTENSIDADE**
 A intensidade não é razão linear que satura cedo. Sobe por curva suave (smoothstep) até um streak configurável (`intensity_full_streak`, valor inicial 40).
@@ -391,12 +397,23 @@ Duas moedas de progresso, com propósitos distintos:
 Nomenclatura na interface: no duelo a barra chama-se AURA; no ecrã de casa o permanente chama-se RANK. Palavra curta e universal para 9-13 anos.
 DECISÃO ANTI-BATOTA: a aura farmada não converte em rank. Clicar muito depressa não dá progresso permanente direto — dá uma vitória mais rápida, e é a rapidez que paga, via bónus de tempo. O incentivo continua, apontado ao sítio certo.
 
-**63. A DIFICULDADE VIVE NOS INTERVALOS**
-**Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento. `base_aura` recalculado a partir da duração pretendida do duelo; os três primeiros intervalos entre adversários mantidos iguais (30.000 cada).
-O que define a dificuldade não é o número do adversário, é o SALTO entre adversários consecutivos. De 0 a 30.000 é um salto de 30.000; de 30.000 a 60.000 é outro igual; se o terceiro for 120.000, o salto duplica.
-A curva afina-se nos intervalos, nunca nos totais.
-PROBLEMA IDENTIFICADO A JOGAR: com alvo de 100 e ~1-3 de aura por clique, o primeiro adversário cai em segundos e o burst nem chega a encher — perde a função. O alvo tem de ser derivado da DURAÇÃO PRETENDIDA do duelo (quanta aura um jogador médio produz nesse tempo) e ficar ligeiramente acima, obrigando ao uso do burst.
-O primeiro adversário deve ser fácil para ensinar o loop, mas nunca trivial ao ponto de o jogador vencer sem descobrir que o burst existe.
+**63. ESTRUTURA POR CENÁRIO — ROUNDS E CHEFE FINAL**
+
+Cada cenário não é um duelo único contra um adversário. É UMA sequência contínua de 10 rounds dentro do mesmo cenário, sem interrupção de jogabilidade entre eles.
+
+**Os limiares.** Aura contínua por cenário, com 10 limiares: 10.000, 20.000, 30.000 ... até 100.000. Estes limiares NÃO são adversários individuais com cara e nome — são marcos de progresso dentro do mesmo confronto. O chefe do cenário está visível ao fundo desde o primeiro round, a comentar.
+
+**Rounds 1 a 9.** Ao atingir cada limiar: ecrã de resultado normal (ponto 64), com um taunt do chefe ou do locutor em vez de mensagem genérica. São atribuídos EGO e MOEDAS em cada round, mais o bónus do tempo que sobrou. O duelo retoma imediatamente no round seguinte, sem voltar à casa e sem perder o estado de aura acumulada.
+
+**Round 10.** É o CHEFE de verdade. Cerimónia distinta: cosmético do chefe transferido para o jogador, chuva de papel picado, arte do chefe derrotado ao fundo, o jogador em primeiro plano com um troféu.
+
+**O tempo reinicia a cada round** — o modelo Super Mario World do ponto 17 aplica-se ao ROUND, não ao cenário inteiro.
+
+**Razão de produção (a mais importante).** Com dezenas de cenários pela frente até à Lua e além, dar um cosmético por cada adversário derrotado não escala: seriam centenas de ilustrações. Com chefe de cenário, o custo de arte fica FIXO — um cosmético por cenário, independentemente de quantos rounds existam no total do jogo. É esta decisão que torna o jogo produzível por uma pessoa só.
+
+**A dificuldade continua a viver nos INTERVALOS** entre limiares consecutivos, agora dentro do mesmo cenário. Os 10 intervalos não precisam de ser iguais entre si — afinar aí, nunca nos totais.
+
+PROBLEMA IDENTIFICADO A JOGAR (mantém-se por resolver): o `base_aura` foi calibrado assumindo o multiplicador de streak sempre no máximo, e sem contar com o multiplicador do burst por cima. O resultado é que os limiares caem depressa demais e o desafio desaparece. A recalibração fica para depois desta reestruturação, com a estrutura correta já em vigor.
 
 **64. ECRÃ DE RESULTADO DO DUELO**
 **Implementado** — ver secção "ESTADO DO CÓDIGO" no fim deste documento.
