@@ -49,22 +49,15 @@ signal burst_ended()
 signal duel_won(final_aura: float) # Story mode only — fires once when _current_aura crosses current_opponent's threshold (design point 64).
 signal duel_lost() # Story mode only — fires once when the countdown reaches zero before duel_won (design point 65).
 
-## base_aura is derived from the intended duel length and a "sustained, no
-## burst" ceiling, so the first opponent's threshold sits just above what a
-## skilled-but-burstless player can produce and the burst becomes necessary
-## rather than optional (design point 63). Re-derive when tuning:
-##   target duel length         ~75s   (midpoint of the 60-90s target range)
-##   sustained tap rate          3     taps/sec (design assumption)
-##   capped streak multiplier    1 + max_bonus = 3x  (treat the whole duel as
-##                                running at the cap — a simplifying upper
-##                                bound; real play ramps up to it, doesn't
-##                                start there)
-##   sustained aura ceiling  = taps_per_sec * base_aura * (1 + max_bonus) * duel_length
-##                           = 3 * base_aura * 3 * 75 = 675 * base_aura
-##   set that ceiling to ~85% of the first opponent's threshold (30000), so a
-##   burst-less player falls just short:
-##       675 * base_aura = 0.85 * 30000  ->  base_aura ~= 37.8
-@export var base_aura: float = 38.0
+## base_aura is tuned around the scenario round thresholds (design point 63),
+## not the old 3-opponent thresholds this was previously derived from. At the
+## old ~38, the new first round (1000 aura) would fall in a handful of taps —
+## no game. At 5, with the streak bonus scaling up to ~3x (max_bonus) and
+## burst at 2x on top, effective per-tap value averages roughly 10-12,
+## putting each regular round at ~40-90s and the boss round (double the
+## normal interval growth) at ~2.5 minutes; a full 10-round scenario lands
+## near 13 minutes.
+@export var base_aura: float = 5.0
 @export var streak_bonus_step: float = 0.1
 @export var max_bonus: float = 2.0
 @export var aura_target: float = 100.0 # Max value shown on AuraBar; overwritten by _setup_story_opponent() once a story opponent is set.
@@ -72,7 +65,7 @@ signal duel_lost() # Story mode only — fires once when the countdown reaches z
 @export var streak_timeout: float = 1.0 # Max seconds allowed between any two consecutive valid taps.
 @export var burst_per_milestone: float = 0.2 # Fixed slice added to burst_meter (0..1) per milestone.
 @export var burst_duration: float = 8.0 # Seconds is_bursting stays true once burst_meter fires.
-@export var burst_multiplier: float = 5.0 # Aura multiplier applied to every valid tap while is_bursting.
+@export var burst_multiplier: float = 2.0 # Aura multiplier applied to every valid tap while is_bursting.
 
 @export var orb_tap_threshold: int = 5 # Counts individual taps, not streak pairs — see design point 60: orbs are the earliest visual reward and must appear fast, decoupled from the slower streak-driven escalation.
 @export var tap_highlight_alpha: float = 0.12 # Also the zone flash's peak alpha (base is 0.0).

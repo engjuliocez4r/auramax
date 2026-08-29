@@ -18,6 +18,8 @@ class_name Scenario
 @export var boss_cosmetic_id: String = "" # Transferred to the player only on round 10 — the scenario's one fixed art cost (design point 63).
 @export var round_thresholds: Array[float] = [] # 10 entries, cumulative story aura per round within this scenario (design point 63). Built-in element type, not a custom class_name — safe under Rule 1.
 @export var round_taunts: Array[String] = [] # 9 translation keys, one per round 1-9; round 10 gets its own boss-defeat ceremony instead of a taunt (design points 39, 63).
-@export var ego_per_round: int = 0 # Flat permanent-progress reward granted on every round, 1 through 10 (design points 62-63).
+@export var ego_per_round: int = 0 # Flat permanent-progress reward for rounds 1-9. Does NOT escalate round by round — the payoff is deliberately concentrated in the boss instead (design points 62-63).
 @export var coin_per_round: int = 0
+@export var boss_ego_reward: int = 0 # Round 10 only: separate, larger than ego_per_round, alongside the cosmetic (design points 39, 62-63).
+@export var boss_coin_reward: int = 0 # Round 10 only: separate, larger than coin_per_round (design point 63).
 @export var round_duration: float = 90.0 # Seconds on the countdown per round (design point 17 — Super Mario World model, now per-ROUND, not per-scenario). Defaults to the current single-duel duration until this is wired up.
