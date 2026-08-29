@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Scenario" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/scenario.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "scenario_01"
+display_name = "scenario_01_name"
+scene_id = "street"
+boss_name = "opponent_01_name"
+boss_cosmetic_id = "street_bully_crown"
+round_thresholds = Array[float]([10000.0, 20000.0, 30000.0, 40000.0, 50000.0, 60000.0, 70000.0, 80000.0, 90000.0, 100000.0])
+round_taunts = Array[String](["scenario_01_taunt_round_1", "scenario_01_taunt_round_2", "scenario_01_taunt_round_3", "scenario_01_taunt_round_4", "scenario_01_taunt_round_5", "scenario_01_taunt_round_6", "scenario_01_taunt_round_7", "scenario_01_taunt_round_8", "scenario_01_taunt_round_9"])
+ego_per_round = 5
+coin_per_round = 30
+round_duration = 90.0
