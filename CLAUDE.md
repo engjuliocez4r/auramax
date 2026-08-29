@@ -78,3 +78,19 @@ A camada de lógica não manipula apresentação diretamente (exceto o tint mín
 ## REGRA 10 — Comentários explicam o porquê
 
 Não descrever o que uma linha faz — isso lê-se no código. Explicar a razão da decisão, especialmente quando contraria o óbvio (ex: "isto está assim por causa da Regra 1").
+
+---
+
+## REGRA 12 — Testes são permanentes, nunca descartáveis
+
+Qualquer teste escrito para validar uma tarefa FICA no repositório, na pasta `tests/`, com nome descritivo do que verifica. É proibido criar um harness temporário e apagá-lo no fim da tarefa.
+
+**Porquê esta regra existe:** ao longo deste projeto foram escritos harnesses de teste várias vezes — para validar o sistema de ritmo, o burst, o desacoplamento das zonas — e todos foram apagados no fim. Isso é o pior dos dois mundos: gastou-se tempo a escrevê-los e não ficou proteção nenhuma. Bugs em mecânica básica (aura por toque, martelar o mesmo lado, limiar das bolinhas) foram descobertos manualmente pelo Julio a jogar, semanas depois de terem sido introduzidos, quando um teste permanente os teria apanhado no mesmo dia.
+
+**Como aplicar:**
+- Toda regra do ponto 68 do `DESIGN.md` (especificação do input) tem de ter um teste correspondente em `tests/`.
+- Ao adicionar uma regra nova de mecânica ao `DESIGN.md`, adicionar o teste correspondente no MESMO commit.
+- Antes de qualquer commit que toque em `duel.gd`, `burst_core.gd`, `announcer.gd` ou em qualquer lógica de input, aura, streak ou burst: correr a suíte de testes e reportar o resultado na resposta.
+- Se algum teste falhar, a tarefa NÃO está terminada, mesmo que o resto funcione.
+
+**Armadilha técnica a evitar (já aconteceu neste projeto):** instanciar uma cena e chamar os seus métodos imediatamente NÃO dispara o `_ready()` do Godot, logo os sinais ainda não estão ligados e o teste pode passar por razões erradas. Um teste tem de esperar pelo menos um frame real (`await get_tree().process_frame`) depois de adicionar a cena à árvore, antes de qualquer asserção. Um teste que não faça isto está a mentir.
