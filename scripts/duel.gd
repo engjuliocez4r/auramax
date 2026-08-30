@@ -528,6 +528,7 @@ func _on_burst_started() -> void:
 	# rather than waiting for the next intensity_changed tick.
 	_on_intensity_changed(intensity)
 	_burst_core.fire()
+	_burst_core.start_drain(burst_duration)
 
 	if _burst_tint_tween:
 		_burst_tint_tween.kill()
@@ -544,6 +545,7 @@ func _on_burst_started() -> void:
 
 
 func _on_burst_ended() -> void:
+	_burst_core.end_drain()
 	if _burst_tint_tween:
 		_burst_tint_tween.kill()
 		_burst_tint_tween = null
