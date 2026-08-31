@@ -33,6 +33,7 @@ opponent_03_name,Stadium King,Rei do Estádio,Rey del Estadio,Roi du Stade,Köni
 duel_aura_target_label,Target: %d,Alvo: %d,Objetivo: %d,Cible : %d,Ziel: %d,Obiettivo: %d
 duel_time_label,%ds,%ds,%ds,%ds,%ds,%ds
 streak_67_bonus_label,+67,+67,+67,+67,+67,+67
+streak_67_center_text,SIX SEVEN,SIX SEVEN,SIX SEVEN,SIX SEVEN,SIX SEVEN,SIX SEVEN
 opponent_card_threshold_label,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA
 opponent_card_cosmetic_label,Unlocked!,Desbloqueado!,¡Desbloqueado!,Débloqué !,Freigeschaltet!,Sbloccato!
 result_aura_label,Aura reached: %d,Aura atingida: %d,Aura alcanzada: %d,Aura atteinte : %d,Erreichte Aura: %d,Aura raggiunta: %d

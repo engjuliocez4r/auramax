@@ -14,6 +14,11 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1")
 
+[node name="Streak67Layer" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
 [node name="LeftZone" type="ColorRect" parent="."]
 anchor_right = 0.5
 anchor_bottom = 1.0
@@ -119,11 +124,6 @@ anchor_bottom = 1.0
 mouse_filter = 2
 horizontal_alignment = 2
 vertical_alignment = 0
-
-[node name="Streak67Layer" type="Control" parent="."]
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
 
 [node name="ClockBonusLabel" type="Label" parent="."]
 visible = false

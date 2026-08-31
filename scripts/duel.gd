@@ -73,14 +73,19 @@ signal streak_67_reached() # Fires once per round when streak hits the game's si
 # ever listens to streak_changed (see _check_streak_67()), never touches
 # _complete_pair/_reset_streak (CLAUDE.md Rule 3).
 @export var streak_67_bonus_seconds: float = 67.0 # Added to the round's remaining time, once per round, the moment the clock animation fuses (see _on_streak_67_clock_fusion()).
-@export var streak_67_label_count: int = 7 # Rising "+67" labels per trigger.
-@export var streak_67_rise_distance: float = 220.0 # px a rising label travels before fully faded.
-@export var streak_67_fade_duration: float = 1.4 # Seconds for one rising label's full rise-and-fade life.
-@export var streak_67_spawn_stagger: float = 0.08 # Seconds between each rising label's spawn, so they emerge as a wave.
-@export var streak_67_drift_amplitude: float = 18.0 # px of sideways sine wander per rising label — same treatment as orb_drift_amplitude.
-@export var streak_67_color: Color = Color(0.3, 1.0, 0.5, 0.55) # Translucent green so the rising labels always read as a gain, never obscuring gameplay.
+@export var streak_67_label_count: int = 20 # "+67" labels scattered across the whole play area — a field, not a handful.
+@export var streak_67_duration: float = 2.0 # Total seconds the field + centre text stay on screen, fade in/out included.
+@export var streak_67_pulse_scale_min: float = 0.9 # Trough of each label's slow breathing scale.
+@export var streak_67_pulse_scale_max: float = 1.15 # Peak of each label's slow breathing scale.
+@export var streak_67_pulse_speed_min: float = 1.0 # Slowest per-label pulse rate (cycles/sec) — gentle, never frantic.
+@export var streak_67_pulse_speed_max: float = 1.8 # Fastest per-label pulse rate — still slow, just enough range that the field desyncs visibly.
+@export var streak_67_opacity: float = 0.35 # Peak alpha once faded in — clearly translucent, gameplay stays visible through it.
+@export var streak_67_color: Color = Color(0.3, 1.0, 0.5, 1.0) # Fully opaque here on purpose: streak_67_opacity above is the only thing controlling translucency, so the two never stack.
+@export var streak_67_center_text_size: int = 96 # Font size (px) of the centred "SIX SEVEN" text.
+@export var streak_67_fade_in_time: float = 0.25 # Seconds for the whole field + centre text to fade in at trigger.
+@export var streak_67_fade_out_time: float = 0.4 # Seconds for the whole field + centre text to fade out at the end.
 
-@export var clock_bonus_hold_duration: float = 0.6 # BEAT 1: seconds the "+67" holds beside the timer before merging.
+@export var clock_bonus_hold_duration: float = 5.0 # BEAT 1: seconds the "+67" holds beside the timer before merging — long enough to actually register it.
 @export var clock_bonus_merge_duration: float = 0.5 # BEAT 2: seconds for the "+67" to travel into the timer and fuse.
 @export var clock_bonus_swell_scale: float = 1.6 # BEAT 3: peak scale of the timer as it absorbs the bonus.
 @export var clock_bonus_swell_duration: float = 0.25 # BEAT 3: seconds to swell up and flash.
@@ -168,7 +173,8 @@ const BURST_TINT_PULSE_PERIOD := 0.7 # Seconds per full up/down pulse cycle — 
 const BURST_TINT_FADE_OUT_TIME := 0.3 # Seconds to settle back to fully transparent once the burst ends.
 
 const STREAK_67_TARGET := 67 # The game's identity number (DESIGN.md points 53, 57) — not a tunable, unlike streak_67_bonus_seconds above; same reasoning as BurstCore's NOTCH_COUNT.
-const STREAK_67_LABEL_SPREAD := 70.0 # px horizontal scatter radius for the rising labels — cosmetic scatter, not a balance parameter (same reasoning as ORB_EDGE_MARGIN above).
+const STREAK_67_SCREEN_MARGIN := 40.0 # px inset from the viewport edges so scattered labels never spawn half-clipped — cosmetic, not a balance parameter (same reasoning as ORB_EDGE_MARGIN above).
+const STREAK_67_LABEL_BASE_FONT_SIZE := 28 # Base font size (px) for field labels before the per-label size variation below.
 const CLOCK_BONUS_LABEL_OFFSET := 90.0 # px to the side of the timer where the BEAT 1 label first appears.
 
 @onready var _left_zone: ColorRect = $LeftZone
@@ -188,7 +194,7 @@ const CLOCK_BONUS_LABEL_OFFSET := 90.0 # px to the side of the timer where the B
 @onready var _aura_target_label: Label = $AuraTargetLabel
 @onready var _countdown_timer: Label = $CountdownTimer
 @onready var _opponent_card: Control = $OpponentCard
-@onready var _streak_67_layer: Control = $Streak67Layer # Full-rect container for the procedural rising "+67" labels.
+@onready var _streak_67_layer: Control = $Streak67Layer # Full-rect container for the procedural field-of-numbers + centre text. Sits below LeftZone/RightZone in duel.tscn, and every node added to it is mouse_filter IGNORE — belt-and-suspenders so the effect can never block a tap (see class doc).
 @onready var _clock_bonus_label: Label = $ClockBonusLabel # The travelling "+67" used by the three-beat clock animation.
 
 var intensity: float = 0.0
@@ -357,54 +363,84 @@ func _check_streak_67(new_value: int) -> void:
 		return
 	_streak_67_fired_this_round = true
 	streak_67_reached.emit()
-	_spawn_streak_67_rising_labels()
+	_play_streak_67_number_field()
 	_play_streak_67_clock_sequence()
 
 
-func _spawn_streak_67_rising_labels() -> void:
-	# Staggered spawn times so the group emerges as a wave, matching the
-	# aura orbs' staggered-arrival treatment rather than firing all at once.
+## A moment of SATURATION, not a damage-number effect: every label spawns
+## once, stays exactly where it spawned, and just breathes in place for
+## streak_67_duration seconds, together with a big centred "SIX SEVEN". The
+## single most important requirement here is that this never blocks a tap —
+## every node created below is mouse_filter IGNORE, and _streak_67_layer
+## itself sits below LeftZone/RightZone in duel.tscn as a second, structural
+## line of defence.
+func _play_streak_67_number_field() -> void:
 	for i in range(streak_67_label_count):
-		get_tree().create_timer(i * streak_67_spawn_stagger).timeout.connect(_spawn_single_streak_67_label)
+		_spawn_streak_67_field_label()
+	_spawn_streak_67_center_label()
 
 
-func _spawn_single_streak_67_label() -> void:
-	var horizontal_jitter := randf_range(-STREAK_67_LABEL_SPREAD, STREAK_67_LABEL_SPREAD)
-	var start_pos := _aura_core.position + Vector2(horizontal_jitter, 0.0)
-
-	var label := Label.new()
-	label.text = tr("streak_67_bonus_label")
-	label.add_theme_color_override("font_color", streak_67_color)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.modulate = Color(1.0, 1.0, 1.0, 0.0) # Translucent throughout: the base alpha lives in streak_67_color; this only fades the label in/out.
-	label.position = start_pos
+func _spawn_streak_67_field_label() -> void:
+	var viewport_size := get_viewport_rect().size
+	var target := Vector2(
+		randf_range(STREAK_67_SCREEN_MARGIN, maxf(viewport_size.x - STREAK_67_SCREEN_MARGIN, STREAK_67_SCREEN_MARGIN)),
+		randf_range(STREAK_67_SCREEN_MARGIN, maxf(viewport_size.y - STREAK_67_SCREEN_MARGIN, STREAK_67_SCREEN_MARGIN))
+	)
+	var font_size := STREAK_67_LABEL_BASE_FONT_SIZE * randf_range(0.8, 1.3) # Slight per-label size variation, so the field reads with depth.
+	var label := _make_streak_67_label(tr("streak_67_bonus_label"), font_size)
+	label.position = target - label.size * 0.5
 	_streak_67_layer.add_child(label)
+	_animate_streak_67_pulsing_label(label)
 
-	var rise_distance := streak_67_rise_distance * randf_range(0.8, 1.2)
-	var duration := streak_67_fade_duration * randf_range(0.85, 1.15)
-	var drift_axis := 1.0 if randf() < 0.5 else -1.0
-	var drift_freq := randf_range(0.6, 1.1) # Slow, calm wander — same feel as the orbs' drift.
 
-	var update_position := func(t: float) -> void:
+func _spawn_streak_67_center_label() -> void:
+	var viewport_size := get_viewport_rect().size
+	var label := _make_streak_67_label(tr("streak_67_center_text"), streak_67_center_text_size)
+	label.position = viewport_size * 0.5 - label.size * 0.5
+	_streak_67_layer.add_child(label)
+	_animate_streak_67_pulsing_label(label)
+
+
+func _make_streak_67_label(text: String, font_size: float) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_color_override("font_color", streak_67_color)
+	label.add_theme_font_size_override("font_size", int(font_size))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE # See _play_streak_67_number_field() doc — never allowed to intercept a tap.
+	label.modulate = Color(1.0, 1.0, 1.0, 0.0) # Translucency lives entirely in streak_67_opacity/streak_67_color; this only drives fade in/out.
+	label.size = label.get_minimum_size() # Needed immediately (not just after a layout pass) so callers can centre it on a target point before adding it to the tree.
+	label.pivot_offset = label.size * 0.5 # Pulses scale from the label's own centre, not its top-left corner.
+	return label
+
+
+func _animate_streak_67_pulsing_label(label: Label) -> void:
+	# Desynchronised on purpose: each label gets its own phase and speed so
+	# the field breathes organically instead of a single collective
+	# heartbeat (task requirement) — same treatment given to the aura orbs'
+	# per-orb drift phase/speed elsewhere in this file.
+	var phase := randf_range(0.0, TAU)
+	var speed := randf_range(streak_67_pulse_speed_min, streak_67_pulse_speed_max)
+
+	var update_scale := func(t: float) -> void:
 		if not is_instance_valid(label):
 			return
-		var rise := rise_distance * t
-		var wobble := sin(t * TAU * drift_freq) * streak_67_drift_amplitude * drift_axis
-		label.position = start_pos + Vector2(wobble, -rise)
+		var wave := sin(t * speed * TAU + phase) * 0.5 + 0.5
+		label.scale = Vector2.ONE * lerpf(streak_67_pulse_scale_min, streak_67_pulse_scale_max, wave)
 
-	var rise_tween := create_tween()
-	rise_tween.tween_method(update_position, 0.0, 1.0, duration).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	var pulse_tween := create_tween()
+	pulse_tween.tween_method(update_scale, 0.0, streak_67_duration, streak_67_duration)
 
-	var fade_in_time := minf(duration * 0.2, 0.3)
-	var fade_out_time := duration * 0.35
-	var hold_time := maxf(duration - fade_in_time - fade_out_time, 0.0)
+	var fade_in_time := minf(streak_67_fade_in_time, streak_67_duration * 0.5)
+	var fade_out_time := minf(streak_67_fade_out_time, streak_67_duration * 0.5)
+	var hold_time := maxf(streak_67_duration - fade_in_time - fade_out_time, 0.0)
 
 	var alpha_tween := create_tween()
-	alpha_tween.tween_property(label, "modulate:a", 1.0, fade_in_time)
+	alpha_tween.tween_property(label, "modulate:a", streak_67_opacity, fade_in_time).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
 	if hold_time > 0.0:
 		alpha_tween.tween_interval(hold_time)
-	alpha_tween.tween_property(label, "modulate:a", 0.0, fade_out_time)
+	alpha_tween.tween_property(label, "modulate:a", 0.0, fade_out_time).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
 	alpha_tween.tween_callback(label.queue_free)
 
 

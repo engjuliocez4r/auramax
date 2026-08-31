@@ -43,6 +43,7 @@ func _run_all_tests() -> void:
 	await _test_streak_67_reward_fires_only_once_per_round()
 	await _test_streak_67_reward_available_again_next_round()
 	await _test_streak_67_reward_not_granted_on_early_reset()
+	await _test_streak_67_effect_does_not_block_input()
 
 
 # ─── Harness ────────────────────────────────────────────────────────────
@@ -387,5 +388,27 @@ func _test_streak_67_reward_not_granted_on_early_reset() -> void:
 
 	await _await_clock_fusion(duel)
 	_check(not duel._streak_67_fired_this_round, "[67 streak] the fired-this-round flag never gets set from a streak that reset before reaching 67")
+
+	_free_duel(duel)
+
+
+func _test_streak_67_effect_does_not_block_input() -> void:
+	var duel := await _make_duel()
+	var left: Control = duel.get_node("LeftZone")
+	var right: Control = duel.get_node("RightZone")
+
+	_reach_streak_67(left, right)
+	_check(duel._streak_67_fired_this_round, "[67 streak] effect triggered before testing input passthrough")
+
+	# The field-of-numbers/centre-text effect is now actively spawning and
+	# animating (streak_67_duration hasn't elapsed yet) — the task's single
+	# most important requirement is that none of it ever blocks a tap, so
+	# tapping right now must still register exactly like any other tap.
+	var streak_before: int = duel._streak
+	var aura_before: float = duel._current_aura
+	_simulate_tap(left)
+	_simulate_tap(right)
+	_check(duel._streak == streak_before + 1, "[67 streak] a tap during the active field-of-numbers effect still completes a pair and increments the streak (%d -> %d)" % [streak_before, duel._streak])
+	_check(duel._current_aura > aura_before, "[67 streak] a tap during the active effect still grants aura")
 
 	_free_duel(duel)
