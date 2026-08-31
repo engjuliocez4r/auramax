@@ -39,6 +39,10 @@ func _run_all_tests() -> void:
 	await _test_orbs_begin_at_tap_threshold_not_pair_threshold()
 	await _test_streak_reset_never_reduces_burst_meter()
 	await _test_burst_multiplies_aura_while_active()
+	await _test_streak_67_reward_adds_bonus_time_once()
+	await _test_streak_67_reward_fires_only_once_per_round()
+	await _test_streak_67_reward_available_again_next_round()
+	await _test_streak_67_reward_not_granted_on_early_reset()
 
 
 # ─── Harness ────────────────────────────────────────────────────────────
@@ -260,5 +264,128 @@ func _test_burst_multiplies_aura_while_active() -> void:
 	var delta_burst: float = duel._current_aura - before_c
 
 	_check(is_equal_approx(delta_burst, delta_non_burst * duel.burst_multiplier), "[Burst multiplier] aura from a tap during burst (%.2f) equals a non-burst tap's aura (%.2f) times burst_multiplier (%.1f)" % [delta_burst, delta_non_burst, duel.burst_multiplier])
+
+	_free_duel(duel)
+
+
+# ─── 67-streak signature reward (CLAUDE.md task: bonus time + rising labels
+# + animated clock absorption) ────────────────────────────────────────────
+# The actual bonus lands at the clock animation's MERGE beat, not the instant
+# the streak hits 67 (see duel.gd _on_streak_67_clock_fusion()) — so every
+# test here waits out hold_duration + merge_duration (plus a small buffer)
+# before reading the countdown, per CLAUDE.md Rule 12's real-frame/real-timer
+# requirement.
+
+const STREAK_67_TARGET_PAIRS := 67 # Mirrors duel.gd's own STREAK_67_TARGET, kept as a literal here since that const is deliberately not an @export (see duel.gd).
+
+
+func _reach_streak_67(left: Control, right: Control) -> void:
+	for i in range(STREAK_67_TARGET_PAIRS):
+		_simulate_tap(left)
+		_simulate_tap(right)
+
+
+func _await_clock_fusion(duel: Node) -> void:
+	await get_tree().create_timer(duel.clock_bonus_hold_duration + duel.clock_bonus_merge_duration + 0.3).timeout
+
+
+func _test_streak_67_reward_adds_bonus_time_once() -> void:
+	var duel := await _make_duel()
+	var left: Control = duel.get_node("LeftZone")
+	var right: Control = duel.get_node("RightZone")
+	var timer_node := duel.get_node("CountdownTimer")
+
+	var before: float = timer_node.seconds_left
+	_reach_streak_67(left, right)
+	_check(duel._streak == STREAK_67_TARGET_PAIRS, "[67 streak] streak reached exactly %d after %d completed pairs" % [STREAK_67_TARGET_PAIRS, STREAK_67_TARGET_PAIRS])
+
+	await _await_clock_fusion(duel)
+	var after: float = timer_node.seconds_left
+	var delta := after - before
+
+	# The countdown only ever ticks DOWN on its own (a fraction of a second
+	# of natural decay across this wait), so a net increase this large can
+	# only be the bonus landing, and it can never exceed the bonus itself.
+	_check(delta > 30.0 and delta <= duel.streak_67_bonus_seconds + 0.1, "[67 streak] countdown increased by streak_67_bonus_seconds (%.2f) once the clock animation fuses — net change was %.2f (before %.2f, after %.2f)" % [duel.streak_67_bonus_seconds, delta, before, after])
+
+	_free_duel(duel)
+
+
+func _test_streak_67_reward_fires_only_once_per_round() -> void:
+	var duel := await _make_duel()
+	var left: Control = duel.get_node("LeftZone")
+	var right: Control = duel.get_node("RightZone")
+	var timer_node := duel.get_node("CountdownTimer")
+
+	_reach_streak_67(left, right)
+	await _await_clock_fusion(duel)
+	var after_first_bonus: float = timer_node.seconds_left
+
+	# Keep going well past 67 in the SAME round — just far enough to prove
+	# the event doesn't repeat as the streak keeps climbing.
+	for i in range(50):
+		_simulate_tap(left)
+		_simulate_tap(right)
+	await _await_clock_fusion(duel)
+	var after_continuing: float = timer_node.seconds_left
+
+	_check(after_continuing <= after_first_bonus + 0.05, "[67 streak] continuing the streak past 67 (now %d) in the same round must not add another bonus — countdown only decreased (%.2f -> %.2f)" % [duel._streak, after_first_bonus, after_continuing])
+	_check(duel._streak_67_fired_this_round, "[67 streak] the fired-this-round flag stays true after continuing past 67")
+
+	_free_duel(duel)
+
+
+func _test_streak_67_reward_available_again_next_round() -> void:
+	# A real round change reloads the whole scene (see result_screen.gd's
+	# _on_continue_pressed) — a fresh duel.gd instance whose
+	# _streak_67_fired_this_round starts false again. Using two separate
+	# instances here is the faithful equivalent of that, and avoids calling
+	# _setup_story_round() a second time on one instance, which would
+	# re-run its (pre-existing, unrelated to this feature) CountdownTimer
+	# signal wiring a second time.
+	var duel_round_1 := await _make_duel()
+	var left_1: Control = duel_round_1.get_node("LeftZone")
+	var right_1: Control = duel_round_1.get_node("RightZone")
+	var timer_1 := duel_round_1.get_node("CountdownTimer")
+
+	var before_1: float = timer_1.seconds_left
+	_reach_streak_67(left_1, right_1)
+	await _await_clock_fusion(duel_round_1)
+	var after_1: float = timer_1.seconds_left
+	_check(after_1 - before_1 > 30.0, "[67 streak] round 1: the bonus lands on a fresh duel instance (%.2f -> %.2f)" % [before_1, after_1])
+	_free_duel(duel_round_1)
+
+	var duel_round_2 := await _make_duel()
+	var left_2: Control = duel_round_2.get_node("LeftZone")
+	var right_2: Control = duel_round_2.get_node("RightZone")
+	var timer_2 := duel_round_2.get_node("CountdownTimer")
+
+	_check(not duel_round_2._streak_67_fired_this_round, "[67 streak] round 2: a new duel instance starts with the reward available again")
+	var before_2: float = timer_2.seconds_left
+	_reach_streak_67(left_2, right_2)
+	await _await_clock_fusion(duel_round_2)
+	var after_2: float = timer_2.seconds_left
+	_check(after_2 - before_2 > 30.0, "[67 streak] round 2: the bonus fires again on the new instance, proving the reward is available on a new round (%.2f -> %.2f)" % [before_2, after_2])
+
+	_free_duel(duel_round_2)
+
+
+func _test_streak_67_reward_not_granted_on_early_reset() -> void:
+	var duel := await _make_duel()
+	var left: Control = duel.get_node("LeftZone")
+	var right: Control = duel.get_node("RightZone")
+
+	for i in range(30):
+		_simulate_tap(left)
+		_simulate_tap(right)
+	_check(duel._streak == 30, "[67 streak] streak built partway to 30 before the reset, well short of 67")
+
+	# Same-side repeat reset, well short of the target.
+	_simulate_tap(left)
+	_simulate_tap(left)
+	_check(duel._streak == 0, "[67 streak] streak actually reset to 0 before reaching 67")
+
+	await _await_clock_fusion(duel)
+	_check(not duel._streak_67_fired_this_round, "[67 streak] the fired-this-round flag never gets set from a streak that reset before reaching 67")
 
 	_free_duel(duel)

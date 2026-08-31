@@ -19,6 +19,8 @@ announcer_milestone_tier3_a,LEGENDARY STREAK!!!,SEQUÊNCIA LENDÁRIA!!!,¡RACHA 
 announcer_milestone_tier3_b,THE CROWD IS ROARING!!!,A MULTIDÃO ESTÁ RUGINDO!!!,¡LA MULTITUD RUGE!!!,LA FOULE RUGIT !!!,DIE MENGE TOBT!!!,LA FOLLA RUGGISCE!!!
 announcer_burst_fired_a,BURST!!!,BURST!!!,¡BURST!!!,BURST !!!,BURST!!!,BURST!!!
 announcer_burst_fired_b,IT'S GOING OFF!!!,EXPLODIU TUDO!!!,¡EXPLOTÓ TODO!!!,ÇA EXPLOSE !!!,ES EXPLODIERT!!!,STA ESPLODENDO TUTTO!!!
+announcer_streak_67_a,SIXTY-SEVEN! THE PROPHECY IS FULFILLED!!!,SESSENTA E SETE! A PROFECIA SE CUMPRIU!!!,¡SESENTA Y SIETE! ¡LA PROFECÍA SE CUMPLIÓ!!!,SOIXANTE-SEPT ! LA PROPHÉTIE EST ACCOMPLIE !!!,SIEBENUNDSECHZIG! DIE PROPHEZEIUNG ERFÜLLT SICH!!!,SESSANTASETTE! LA PROFEZIA SI COMPIE!!!
+announcer_streak_67_b,SIX. SEVEN. YOU ARE THE CHOSEN ONE!!!,SIX. SEVEN. VOCÊ É O ESCOLHIDO!!!,SIX. SEVEN. ¡ERES EL ELEGIDO!!!,SIX. SEVEN. TU ES L'ÉLU !!!,SIX. SEVEN. DU BIST DER AUSERWÄHLTE!!!,SIX. SEVEN. SEI L'ELETTO!!!
 announcer_victory_perfect_a,FLAWLESS VICTORY!,VITÓRIA PERFEITA!,¡VICTORIA PERFECTA!,VICTOIRE PARFAITE !,PERFEKTER SIEG!,VITTORIA PERFETTA!
 announcer_victory_perfect_b,YOU CRUSHED IT!,VOCÊ ARRASOU!,¡LO APLASTASTE!,TU AS TOUT ÉCRASÉ !,DU HAST ALLES ZERSTÖRT!,HAI SPACCATO TUTTO!
 announcer_victory_good_a,Great win!,Ótima vitória!,¡Gran victoria!,Belle victoire !,Toller Sieg!,Ottima vittoria!
@@ -30,6 +32,7 @@ opponent_02_name,Fair Champion,Campeão da Feira,Campeón de la Feria,Champion d
 opponent_03_name,Stadium King,Rei do Estádio,Rey del Estadio,Roi du Stade,König des Stadions,Re dello Stadio
 duel_aura_target_label,Target: %d,Alvo: %d,Objetivo: %d,Cible : %d,Ziel: %d,Obiettivo: %d
 duel_time_label,%ds,%ds,%ds,%ds,%ds,%ds
+streak_67_bonus_label,+67,+67,+67,+67,+67,+67
 opponent_card_threshold_label,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA,%d AURA
 opponent_card_cosmetic_label,Unlocked!,Desbloqueado!,¡Desbloqueado!,Débloqué !,Freigeschaltet!,Sbloccato!
 result_aura_label,Aura reached: %d,Aura atingida: %d,Aura alcanzada: %d,Aura atteinte : %d,Erreichte Aura: %d,Aura raggiunta: %d

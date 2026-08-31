@@ -37,6 +37,14 @@ func stop() -> void:
 	_running = false
 
 
+## Adds seconds to the currently running countdown without resetting it —
+## used by the 67-streak reward (duel.gd), unlike start() above which begins
+## a fresh countdown for the "watch ad / spend coins" continue flow.
+func add_time(amount: float) -> void:
+	seconds_left += amount
+	time_updated.emit(seconds_left)
+
+
 func _process(delta: float) -> void:
 	if not _running:
 		return

@@ -48,6 +48,7 @@ signal burst_started()
 signal burst_ended()
 signal duel_won(final_aura: float) # Story mode only — fires once when _current_aura crosses the current round's threshold (design point 64).
 signal duel_lost() # Story mode only — fires once when the countdown reaches zero before duel_won (design point 65).
+signal streak_67_reached() # Fires once per round when streak hits the game's signature number — see _check_streak_67(). The announcer reacts to this itself (CLAUDE.md Rule 9); duel.gd never calls it directly.
 
 ## base_aura is tuned around the scenario round thresholds (design point 63),
 ## not the old 3-opponent thresholds this was previously derived from. At the
@@ -66,6 +67,25 @@ signal duel_lost() # Story mode only — fires once when the countdown reaches z
 @export var burst_per_milestone: float = 0.2 # Fixed slice added to burst_meter (0..1) per milestone.
 @export var burst_duration: float = 8.0 # Seconds is_bursting stays true once burst_meter fires.
 @export var burst_multiplier: float = 2.0 # Aura multiplier applied to every valid tap while is_bursting.
+
+# ─── 67-streak signature reward (DESIGN.md points 53, 57) ────────────────
+# An additive component layered on top of the streak logic above — it only
+# ever listens to streak_changed (see _check_streak_67()), never touches
+# _complete_pair/_reset_streak (CLAUDE.md Rule 3).
+@export var streak_67_bonus_seconds: float = 67.0 # Added to the round's remaining time, once per round, the moment the clock animation fuses (see _on_streak_67_clock_fusion()).
+@export var streak_67_label_count: int = 7 # Rising "+67" labels per trigger.
+@export var streak_67_rise_distance: float = 220.0 # px a rising label travels before fully faded.
+@export var streak_67_fade_duration: float = 1.4 # Seconds for one rising label's full rise-and-fade life.
+@export var streak_67_spawn_stagger: float = 0.08 # Seconds between each rising label's spawn, so they emerge as a wave.
+@export var streak_67_drift_amplitude: float = 18.0 # px of sideways sine wander per rising label — same treatment as orb_drift_amplitude.
+@export var streak_67_color: Color = Color(0.3, 1.0, 0.5, 0.55) # Translucent green so the rising labels always read as a gain, never obscuring gameplay.
+
+@export var clock_bonus_hold_duration: float = 0.6 # BEAT 1: seconds the "+67" holds beside the timer before merging.
+@export var clock_bonus_merge_duration: float = 0.5 # BEAT 2: seconds for the "+67" to travel into the timer and fuse.
+@export var clock_bonus_swell_scale: float = 1.6 # BEAT 3: peak scale of the timer as it absorbs the bonus.
+@export var clock_bonus_swell_duration: float = 0.25 # BEAT 3: seconds to swell up and flash.
+@export var clock_bonus_settle_duration: float = 0.35 # BEAT 3: seconds to ease back down to normal size/colour.
+@export var clock_bonus_flash_color: Color = Color(0.3, 1.0, 0.5, 1.0) # Timer's flash colour on absorbing the bonus.
 
 @export var orb_tap_threshold: int = 5 # Counts individual taps, not streak pairs — see design point 60: orbs are the earliest visual reward and must appear fast, decoupled from the slower streak-driven escalation.
 @export var tap_highlight_alpha: float = 0.12 # Also the zone flash's peak alpha (base is 0.0).
@@ -147,6 +167,10 @@ const CONFETTI_SPAWN_MARGIN := 40.0 # px above the top edge, so confetti is alre
 const BURST_TINT_PULSE_PERIOD := 0.7 # Seconds per full up/down pulse cycle — noticeable, not seizure-inducing.
 const BURST_TINT_FADE_OUT_TIME := 0.3 # Seconds to settle back to fully transparent once the burst ends.
 
+const STREAK_67_TARGET := 67 # The game's identity number (DESIGN.md points 53, 57) — not a tunable, unlike streak_67_bonus_seconds above; same reasoning as BurstCore's NOTCH_COUNT.
+const STREAK_67_LABEL_SPREAD := 70.0 # px horizontal scatter radius for the rising labels — cosmetic scatter, not a balance parameter (same reasoning as ORB_EDGE_MARGIN above).
+const CLOCK_BONUS_LABEL_OFFSET := 90.0 # px to the side of the timer where the BEAT 1 label first appears.
+
 @onready var _left_zone: ColorRect = $LeftZone
 @onready var _right_zone: ColorRect = $RightZone
 @onready var _aura_bar: ProgressBar = $AuraBar
@@ -164,12 +188,15 @@ const BURST_TINT_FADE_OUT_TIME := 0.3 # Seconds to settle back to fully transpar
 @onready var _aura_target_label: Label = $AuraTargetLabel
 @onready var _countdown_timer: Label = $CountdownTimer
 @onready var _opponent_card: Control = $OpponentCard
+@onready var _streak_67_layer: Control = $Streak67Layer # Full-rect container for the procedural rising "+67" labels.
+@onready var _clock_bonus_label: Label = $ClockBonusLabel # The travelling "+67" used by the three-beat clock animation.
 
 var intensity: float = 0.0
 var burst_meter: float = 0.0 # Savings, not the current moment: only ever grows, independent of streak resets.
 var is_bursting: bool = false # No state enum — a flag layered on top of tap/streak logic; never gates input.
 var current_round_index: int = -1 # -1 until _setup_story_round() runs, then 0-9. Mirrors the old current_opponent == null guard. Public: read by OpponentCard/ResultScreen, which duck-type onto this node — see _setup_story_round().
 var _victory_triggered: bool = false # Guards duel_won from firing more than once as aura keeps climbing after the threshold.
+var _streak_67_fired_this_round: bool = false # Guards the 67-streak reward to once per round; reset in _setup_story_round(). Streak keeps climbing past 67 for achievement purposes, but this stays true so the reward itself never repeats (design points 53, 57).
 
 var _last_touch_press_time_ms: int = -1000000
 var _last_side: String = ""
@@ -201,6 +228,7 @@ func _ready() -> void:
 	_right_zone.gui_input.connect(_on_right_zone_gui_input)
 	valid_tap.connect(_on_valid_tap)
 	streak_changed.connect(_on_streak_changed)
+	streak_changed.connect(_check_streak_67)
 	aura_changed.connect(_on_aura_changed)
 	intensity_changed.connect(_on_intensity_changed)
 	milestone_reached.connect(_on_milestone_reached)
@@ -262,6 +290,8 @@ func _setup_story_round() -> void:
 	# result_screen.gd), so "how many thresholds has this aura already
 	# passed" is exactly "which round comes next." Same role
 	# GameState.defeated_opponents.size() used to play against story_opponents.
+	_streak_67_fired_this_round = false # New round: the 67-streak reward is available again (design points 53, 57).
+
 	var round_index := 0
 	while round_index < current_scenario.round_thresholds.size() and GameState.current_aura >= current_scenario.round_thresholds[round_index]:
 		round_index += 1
@@ -312,6 +342,123 @@ func _on_countdown_expired() -> void:
 ## duel resumes with extra time, nothing about aura/streak/burst resets.
 func resume_duel(bonus_seconds: float) -> void:
 	_countdown_timer.start(bonus_seconds)
+
+
+# ─── 67-streak signature reward (DESIGN.md points 53, 57) ───────────────
+# Purely additive: listens to the existing streak_changed signal instead of
+# touching _complete_pair/_reset_streak (CLAUDE.md Rule 3). Allowing repeats
+# (134, 201, ...) would let a strong player chain the reward for
+# near-unlimited round time; once per round keeps it a special moment while
+# still rewarding slower players who reach it on the boss round, where the
+# extra time matters most.
+
+func _check_streak_67(new_value: int) -> void:
+	if new_value != STREAK_67_TARGET or _streak_67_fired_this_round:
+		return
+	_streak_67_fired_this_round = true
+	streak_67_reached.emit()
+	_spawn_streak_67_rising_labels()
+	_play_streak_67_clock_sequence()
+
+
+func _spawn_streak_67_rising_labels() -> void:
+	# Staggered spawn times so the group emerges as a wave, matching the
+	# aura orbs' staggered-arrival treatment rather than firing all at once.
+	for i in range(streak_67_label_count):
+		get_tree().create_timer(i * streak_67_spawn_stagger).timeout.connect(_spawn_single_streak_67_label)
+
+
+func _spawn_single_streak_67_label() -> void:
+	var horizontal_jitter := randf_range(-STREAK_67_LABEL_SPREAD, STREAK_67_LABEL_SPREAD)
+	var start_pos := _aura_core.position + Vector2(horizontal_jitter, 0.0)
+
+	var label := Label.new()
+	label.text = tr("streak_67_bonus_label")
+	label.add_theme_color_override("font_color", streak_67_color)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.modulate = Color(1.0, 1.0, 1.0, 0.0) # Translucent throughout: the base alpha lives in streak_67_color; this only fades the label in/out.
+	label.position = start_pos
+	_streak_67_layer.add_child(label)
+
+	var rise_distance := streak_67_rise_distance * randf_range(0.8, 1.2)
+	var duration := streak_67_fade_duration * randf_range(0.85, 1.15)
+	var drift_axis := 1.0 if randf() < 0.5 else -1.0
+	var drift_freq := randf_range(0.6, 1.1) # Slow, calm wander — same feel as the orbs' drift.
+
+	var update_position := func(t: float) -> void:
+		if not is_instance_valid(label):
+			return
+		var rise := rise_distance * t
+		var wobble := sin(t * TAU * drift_freq) * streak_67_drift_amplitude * drift_axis
+		label.position = start_pos + Vector2(wobble, -rise)
+
+	var rise_tween := create_tween()
+	rise_tween.tween_method(update_position, 0.0, 1.0, duration).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+
+	var fade_in_time := minf(duration * 0.2, 0.3)
+	var fade_out_time := duration * 0.35
+	var hold_time := maxf(duration - fade_in_time - fade_out_time, 0.0)
+
+	var alpha_tween := create_tween()
+	alpha_tween.tween_property(label, "modulate:a", 1.0, fade_in_time)
+	if hold_time > 0.0:
+		alpha_tween.tween_interval(hold_time)
+	alpha_tween.tween_property(label, "modulate:a", 0.0, fade_out_time)
+	alpha_tween.tween_callback(label.queue_free)
+
+
+func _play_streak_67_clock_sequence() -> void:
+	# Three sequential beats, all eased (never linear): APPEAR beside the
+	# timer and hold so the player registers the gain, MERGE into the timer
+	# (the actual bonus time lands at the exact moment of fusion — see
+	# _on_streak_67_clock_fusion() — so cause and effect stay visually
+	# linked), then SWELL/flash/settle as the timer absorbs it.
+	_clock_bonus_label.pivot_offset = Vector2.ZERO
+	_clock_bonus_label.text = tr("streak_67_bonus_label")
+	_clock_bonus_label.add_theme_color_override("font_color", clock_bonus_flash_color)
+	_clock_bonus_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_clock_bonus_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	_clock_bonus_label.scale = Vector2.ONE
+	_clock_bonus_label.visible = true
+
+	var start_pos := _countdown_timer.position - Vector2(CLOCK_BONUS_LABEL_OFFSET, 0.0)
+	var target_pos := _countdown_timer.position + _countdown_timer.size * 0.5
+	_clock_bonus_label.position = start_pos
+
+	_countdown_timer.pivot_offset = _countdown_timer.size * 0.5
+	_countdown_timer.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+	var sequence := create_tween()
+	# BEAT 1 — appear and hold, clearly readable.
+	sequence.tween_property(_clock_bonus_label, "modulate:a", 1.0, 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	sequence.tween_interval(clock_bonus_hold_duration)
+	# BEAT 2 — travel into the timer and fuse.
+	var merge_move := sequence.tween_property(_clock_bonus_label, "position", target_pos, clock_bonus_merge_duration)
+	merge_move.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	var merge_fade := sequence.parallel().tween_property(_clock_bonus_label, "modulate:a", 0.0, clock_bonus_merge_duration)
+	merge_fade.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	sequence.tween_callback(_on_streak_67_clock_fusion)
+	# BEAT 3 — swell, flash, then ease back to normal.
+	var swell := sequence.tween_property(_countdown_timer, "scale", Vector2.ONE * clock_bonus_swell_scale, clock_bonus_swell_duration)
+	swell.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	var flash_up := sequence.parallel().tween_method(_set_countdown_flash, 0.0, 1.0, clock_bonus_swell_duration)
+	flash_up.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	var settle := sequence.tween_property(_countdown_timer, "scale", Vector2.ONE, clock_bonus_settle_duration)
+	settle.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	var flash_down := sequence.parallel().tween_method(_set_countdown_flash, 1.0, 0.0, clock_bonus_settle_duration)
+	flash_down.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	sequence.tween_callback(func() -> void: _clock_bonus_label.visible = false)
+
+
+func _on_streak_67_clock_fusion() -> void:
+	# The mechanical reward and its visual cause fire in the same breath —
+	# the countdown must not tick up before the "+67" visibly arrives.
+	_countdown_timer.add_time(streak_67_bonus_seconds)
+
+
+func _set_countdown_flash(t: float) -> void:
+	_countdown_timer.modulate = Color(1.0, 1.0, 1.0, 1.0).lerp(clock_bonus_flash_color, t)
 
 
 # ─── Input ──────────────────────────────────────────────────────────────

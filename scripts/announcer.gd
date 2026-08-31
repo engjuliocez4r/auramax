@@ -27,6 +27,7 @@ const LINE_POOLS := {
 	"milestone_tier_2": ["announcer_milestone_tier2_a", "announcer_milestone_tier2_b"],
 	"milestone_tier_3": ["announcer_milestone_tier3_a", "announcer_milestone_tier3_b"],
 	"burst_fired": ["announcer_burst_fired_a", "announcer_burst_fired_b"],
+	"streak_67": ["announcer_streak_67_a", "announcer_streak_67_b"], # The game's signature number (DESIGN.md points 53, 57) — the biggest line in the pool.
 	"victory_perfect": ["announcer_victory_perfect_a", "announcer_victory_perfect_b"],
 	"victory_good": ["announcer_victory_good_a", "announcer_victory_good_b"],
 	"victory_clear": ["announcer_victory_clear_a", "announcer_victory_clear_b"],
@@ -68,6 +69,8 @@ func _connect_to_host_signals() -> void:
 		host.streak_changed.connect(_on_host_streak_changed)
 	if host.has_signal("burst_started"):
 		host.burst_started.connect(_on_host_burst_started)
+	if host.has_signal("streak_67_reached"):
+		host.streak_67_reached.connect(_on_host_streak_67_reached)
 
 
 func _on_host_streak_changed(new_streak: int) -> void:
@@ -86,6 +89,10 @@ func _on_host_burst_started() -> void:
 	# own top-energy line, plus the crowd roar sound hook below.
 	announce("burst_fired")
 	_play_crowd_roar()
+
+
+func _on_host_streak_67_reached() -> void:
+	announce("streak_67")
 
 
 func _pick_energy_tier(milestone_index: int) -> int:
